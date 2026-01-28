@@ -19,7 +19,16 @@ export default function UserBadge() {
 
   if (!user) return null
 
-  const name = user.user_metadata?.name || 'User'
+  const rawName =
+    user.user_metadata?.name ||
+    user.user_metadata?.full_name ||
+    'User'
+
+  // Remove #1234 or !1234
+  const cleanName = rawName
+    .split('#')[0]
+    .split('!')[0]
+
   const avatar = user.user_metadata?.avatar_url
 
   return (
@@ -35,7 +44,7 @@ export default function UserBadge() {
 
       <div className="text-sm leading-tight">
         <div className="font-semibold">
-          {name}
+          {cleanName}
         </div>
 
         <div className="text-green-400 text-xs">
