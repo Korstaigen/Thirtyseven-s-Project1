@@ -1,7 +1,9 @@
 import { createClient } from '@/supabase/server'
 
+/* Disable static rendering */
+export const revalidate = 0
+
 export default async function PrioPage() {
-  // IMPORTANT: await here
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -48,7 +50,10 @@ export default async function PrioPage() {
             </div>
 
             <div className="mt-2 text-sm">
-              Item: <span className="text-blue-400">{row.item}</span>
+              Item:{' '}
+              <span className="text-blue-400">
+                {row.item}
+              </span>
             </div>
 
             <div className="text-sm">
@@ -61,6 +66,7 @@ export default async function PrioPage() {
         ))}
 
       </div>
+
     </div>
   )
 }
