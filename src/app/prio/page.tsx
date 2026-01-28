@@ -93,7 +93,16 @@ export default function PrioPage() {
 
             <div className="text-sm">
               Priority:{' '}
-              <span className="text-yellow-400">
+              <span 
+                className={
+                  row.priority === 'High'
+                  ? 'text-red-400 font-semibold'
+                  row.priority === 'Medium'
+                  ? 'text-yellow-400'
+                  row.priority === 'Low'
+                  ? 'text-green-400'
+                }
+                >
                 {row.priority}
               </span>
             </div>
