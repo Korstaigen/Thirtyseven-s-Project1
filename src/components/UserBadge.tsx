@@ -34,10 +34,11 @@ export default function UserBadge() {
 
   return (
     <>
-      <div className="flex flex-col gap-2 bg-gray-800 px-4 py-3 rounded-lg shadow">
+      {/* Container */}
+      <div className="flex flex-col gap-3">
 
-        {/* User Row */}
-        <div className="flex items-center gap-3">
+        {/* User Card */}
+        <div className="flex items-center gap-3 bg-gray-800 px-4 py-3 rounded-lg shadow min-w-[220px]">
 
           {avatar && (
             <img
@@ -59,10 +60,10 @@ export default function UserBadge() {
 
         </div>
 
-        {/* Loot Button */}
+        {/* Loot System Button */}
         <button
           onClick={() => setShowLoot(true)}
-          className="text-xs text-blue-400 hover:text-blue-300 text-left"
+          className="bg-gray-800 px-4 py-3 rounded-lg shadow text-sm font-medium text-left hover:bg-gray-700 transition min-w-[220px]"
         >
           Loot System
         </button>
