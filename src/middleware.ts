@@ -29,19 +29,18 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Allow auth routes
-  if (request.nextUrl.pathname.startsWith('/auth')) {
+  // Allow auth + login routes (no redirect)
+  if (
+    request.nextUrl.pathname.startsWith('/auth') ||
+    request.nextUrl.pathname.startsWith('/login')
+  ) {
     return response
   }
 
-  // Not logged in → redirect
+  // Not logged in → redirect to login
   if (!user) {
-    const redirectUrl =
-      'https://ypwlkgaebzpnmpeazkqg.supabase.co/auth/v1/authorize' +
-      '?provider=discord' +
-      '&redirect_to=https://thirtyseven-s-project1.vercel.app/auth/callback'
-
-    return NextResponse.redirect(redirectUrl)
+    const loginUrl = new URL('/login', request.url)
+    return NextResponse.redirect(loginUrl)
   }
 
   return response
