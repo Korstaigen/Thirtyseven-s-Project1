@@ -1,22 +1,57 @@
-import { createClient } from '@/supabase/server'
+'use client'
 
-/* Disable static rendering */
-export const revalidate = 0
+import { useEffect, useState } from 'react'
+import { createClient } from '@/supabase/client'
 
-export default async function PrioPage() {
-  const supabase = await createClient()
+type LootRow = {
+  id: number
+  character_name: string
+  class: string
+  raid: string
+  item: string
+  priority: string
+}
 
-  const { data, error } = await supabase
-    .from('loot_requests')
-    .select('*')
-    .order('raid', { ascending: true })
-    .order('item', { ascending: true })
+export default function PrioPage() {
+  const supabase = createClient()
+
+  const [rows, setRows] = useState<LootRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function load() {
+      const { data, error } = await supabase
+        .from('loot_requests')
+        .select('*')
+        .order('raid', { ascending: true })
+        .order('item', { ascending: true })
+
+      if (error) {
+        setError(error.message)
+      } else {
+        setRows(data || [])
+      }
+
+      setLoading(false)
+    }
+
+    load()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        Loading priorities...
+      </div>
+    )
+  }
 
   if (error) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-6">
         <h1 className="text-2xl font-bold mb-4">Raid Priorities</h1>
-        <p className="text-red-400">Error loading data</p>
+        <p className="text-red-400">{error}</p>
       </div>
     )
   }
@@ -28,7 +63,7 @@ export default async function PrioPage() {
         Raid Priority Overview
       </h1>
 
-      {(!data || data.length === 0) && (
+      {rows.length === 0 && (
         <p className="text-gray-400">
           No priorities submitted yet.
         </p>
@@ -36,7 +71,7 @@ export default async function PrioPage() {
 
       <div className="space-y-4">
 
-        {data?.map((row) => (
+        {rows.map((row) => (
           <div
             key={row.id}
             className="bg-gray-800 p-4 rounded shadow"
