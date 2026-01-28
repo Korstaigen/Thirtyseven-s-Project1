@@ -10,7 +10,7 @@ export default function Home() {
         <img
           src="https://media1.tenor.com/m/xgVPxE3ZsQAAAAAd/hop-on-turtlewow-turtlewow.gif"
           alt="guild gif"
-          className="w-[75px] h-[75px] rounded-lg shadow"
+          className="w-[250px] h-[250px] rounded-lg shadow"
         />
       </div>
 
