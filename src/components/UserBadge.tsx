@@ -13,13 +13,16 @@ export default function UserBadge() {
   // Loot popup state
   const [showLoot, setShowLoot] = useState(false)
 
+  /* Load user + admin status */
   useEffect(() => {
     async function loadUser() {
       const { data } = await supabase.auth.getUser()
+
       if (!data.user) return
 
       setUser(data.user)
 
+      // Get admin flag from profiles table
       const { data: profile } = await supabase
         .from('profiles')
         .select('is_admin')
@@ -32,7 +35,10 @@ export default function UserBadge() {
     loadUser()
   }, [])
 
+  /* Become admin */
   async function becomeAdmin() {
+    if (!user) return
+
     const password = prompt('Enter admin password')
     if (!password) return
 
@@ -45,13 +51,21 @@ export default function UserBadge() {
       return
     }
 
+    // Re-fetch admin status from DB
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+
+    setIsAdmin(!!profile?.is_admin)
+
     alert('Admin access granted')
-    setIsAdmin(true)
   }
 
   if (!user) return null
 
-  // Clean Discord name
+  /* Clean Discord name */
   const rawName = user.user_metadata?.name || 'User'
   const name = rawName.split('#')[0]
 
@@ -62,8 +76,9 @@ export default function UserBadge() {
       {/* Main Badge */}
       <div className="flex flex-col gap-2 bg-gray-800 px-4 py-3 rounded-lg shadow w-64">
 
-        {/* User info */}
+        {/* User Info */}
         <div className="flex items-center gap-3">
+
           {avatar && (
             <img
               src={avatar}
@@ -73,15 +88,18 @@ export default function UserBadge() {
           )}
 
           <div className="text-sm leading-tight">
-            <div className="font-semibold">{name}</div>
+            <div className="font-semibold">
+              {name}
+            </div>
 
             <div className="text-green-400 text-xs">
               {isAdmin ? 'Admin' : 'Logged in'}
             </div>
           </div>
+
         </div>
 
-        {/* Loot System button */}
+        {/* Loot System Button */}
         <button
           onClick={() => setShowLoot(true)}
           className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm text-left"
@@ -89,14 +107,16 @@ export default function UserBadge() {
           Loot System
         </button>
 
-        {/* Raid Priorities button */}
+        {/* Raid Priorities Button */}
         <Link href="/prio">
-          <button className="w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm text-left">
+          <button
+            className="w-full bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm text-left"
+          >
             Raid Priorities
           </button>
         </Link>
 
-        {/* Admin action */}
+        {/* Become Admin */}
         {!isAdmin && (
           <button
             onClick={becomeAdmin}
@@ -105,6 +125,7 @@ export default function UserBadge() {
             Become Admin
           </button>
         )}
+
       </div>
 
       {/* Loot System Modal */}
@@ -113,7 +134,7 @@ export default function UserBadge() {
 
           <div className="bg-gray-900 text-white max-w-2xl w-full max-h-[80vh] overflow-y-auto rounded-lg p-6 shadow-lg relative">
 
-            {/* Close */}
+            {/* Close Button */}
             <button
               onClick={() => setShowLoot(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-white"
@@ -132,35 +153,35 @@ export default function UserBadge() {
               </p>
 
               <p>
-                SR+ has been removed. The system encouraged stacking and blocked progression on key items.
+                SR+ has been removed. The system encouraged stacking and blocked progression.
               </p>
 
               <p>
-                Players may SR two items. Some items are hard-reserved and follow either priority or roll rules.
+                Players may SR two items. Some items are hard-reserved.
               </p>
 
               <p>
-                Master loot is no longer used except on Kruul and Mephistroth.
+                Master loot is only used on Kruul and Mephistroth.
               </p>
 
               <p>
-                Group loot is now standard to improve speed and reduce downtime during raids.
+                Group loot is standard to improve raid speed.
               </p>
 
               <p>
-                SR item: roll NEED. MS item: roll GREED. OS or other: PASS.
+                SR item: NEED. MS item: GREED. OS: PASS.
               </p>
 
               <p>
-                Priority lists determine eligibility. The greater-than symbol means priority order. R means roll.
+                Priority lists determine eligibility.
               </p>
 
               <p>
-                Priority decisions are made for raid benefit, not individual gain.
+                Decisions are made for raid benefit.
               </p>
 
               <p>
-                The goal is performance, consistency, and improving raid efficiency.
+                The goal is performance and consistency.
               </p>
 
             </div>
