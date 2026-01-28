@@ -11,9 +11,15 @@ type LootRow = {
   item_name: string
   priority: string
   created_at: string
+
   status?: string
   reviewed_by?: string
+
+  admin_note?: string
+  locked?: boolean
 }
+
+const PRIORITIES = ['Low', 'Medium', 'High']
 
 export default function PrioPage() {
   const supabase = createClient()
@@ -31,18 +37,15 @@ export default function PrioPage() {
   const [raidFilter, setRaidFilter] = useState('All')
   const [classFilter, setClassFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
-  const [dateFilter, setDateFilter] = useState('All')
 
   /* Load */
   useEffect(() => {
     async function load() {
 
-      /* Get user */
       const { data: userData } = await supabase.auth.getUser()
 
       if (userData.user) {
 
-        // Clean Discord name
         const raw =
           userData.user.user_metadata?.name || 'Admin'
 
@@ -57,7 +60,6 @@ export default function PrioPage() {
         setIsAdmin(!!profile?.is_admin)
       }
 
-      /* Get requests */
       const { data, error } = await supabase
         .from('loot_requests')
         .select('*')
@@ -92,31 +94,9 @@ export default function PrioPage() {
       result = result.filter(r => r.priority === priorityFilter)
     }
 
-    if (dateFilter !== 'All') {
-      const now = new Date()
-
-      result = result.filter(r => {
-        const created = new Date(r.created_at)
-
-        if (dateFilter === 'Today') {
-          return created.toDateString() === now.toDateString()
-        }
-
-        if (dateFilter === '7days') {
-          return now.getTime() - created.getTime() <= 7 * 86400000
-        }
-
-        if (dateFilter === '30days') {
-          return now.getTime() - created.getTime() <= 30 * 86400000
-        }
-
-        return true
-      })
-    }
-
     setFilteredRows(result)
 
-  }, [raidFilter, classFilter, priorityFilter, dateFilter, rows])
+  }, [raidFilter, classFilter, priorityFilter, rows])
 
   /* Helpers */
   function getPriorityColor(priority: string) {
@@ -126,42 +106,46 @@ export default function PrioPage() {
     return 'text-gray-300'
   }
 
-  /* Admin */
-  async function updateStatus(id: number, status: string) {
+  /* Admin Actions */
 
-    const { error } = await supabase
+  async function updateRow(
+    id: number,
+    updates: Partial<LootRow>
+  ) {
+
+    await supabase
       .from('loot_requests')
-      .update({
-        status,
-        reviewed_by: adminName,
-      })
+      .update(updates)
       .eq('id', id)
 
-    if (!error) {
-      setRows(prev =>
-        prev.map(r =>
-          r.id === id
-            ? {
-                ...r,
-                status,
-                reviewed_by: adminName,
-              }
-            : r
-        )
+    setRows(prev =>
+      prev.map(r =>
+        r.id === id ? { ...r, ...updates } : r
       )
-    }
+    )
+  }
+
+  async function updateStatus(id: number, status: string) {
+    updateRow(id, {
+      status,
+      reviewed_by: adminName,
+    })
   }
 
   async function deleteRequest(id: number) {
 
-    const { error } = await supabase
+    await supabase
       .from('loot_requests')
       .delete()
       .eq('id', id)
 
-    if (!error) {
-      setRows(prev => prev.filter(r => r.id !== id))
-    }
+    setRows(prev => prev.filter(r => r.id !== id))
+  }
+
+  async function toggleLock(row: LootRow) {
+    updateRow(row.id, {
+      locked: !row.locked,
+    })
   }
 
   /* Dropdowns */
@@ -191,14 +175,14 @@ export default function PrioPage() {
     <div className="min-h-screen bg-gray-900 text-white p-6">
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row lg:justify-between gap-4 mb-6">
 
         <h1 className="text-3xl font-bold">
           Raid Priority Overview
         </h1>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex gap-3 flex-wrap">
 
           <select
             value={raidFilter}
@@ -240,9 +224,12 @@ export default function PrioPage() {
         {filteredRows.map((row) => (
           <div
             key={row.id}
-            className="bg-gray-800 p-4 rounded shadow"
+            className={`bg-gray-800 p-4 rounded shadow ${
+              row.locked ? 'opacity-70' : ''
+            }`}
           >
 
+            {/* Header */}
             <div className="font-semibold">
               {row.character_name}
             </div>
@@ -251,22 +238,106 @@ export default function PrioPage() {
               {row.class} • {row.raid}
             </div>
 
+            {/* Item */}
             <div className="mt-2 text-sm">
+
               Item:{' '}
-              <span className="text-blue-400">
-                {row.item_name}
-              </span>
+
+              {!isAdmin || row.locked ? (
+                <span className="text-blue-400">
+                  {row.item_name}
+                </span>
+              ) : (
+                <input
+                  defaultValue={row.item_name}
+                  onBlur={(e) =>
+                    updateRow(row.id, {
+                      item_name: e.target.value,
+                    })
+                  }
+                  className="bg-gray-700 px-2 py-1 rounded text-sm w-full"
+                />
+              )}
+
             </div>
 
-            <div className="text-sm">
-              Priority:{' '}
-              <span className={getPriorityColor(row.priority)}>
-                {row.priority}
-              </span>
+            {/* Raid */}
+            <div className="text-sm mt-1">
+
+              Raid:{' '}
+
+              {!isAdmin || row.locked ? (
+                row.raid
+              ) : (
+                <input
+                  defaultValue={row.raid}
+                  onBlur={(e) =>
+                    updateRow(row.id, {
+                      raid: e.target.value,
+                    })
+                  }
+                  className="bg-gray-700 px-2 py-1 rounded text-sm"
+                />
+              )}
+
             </div>
 
+            {/* Priority */}
+            <div className="text-sm mt-1 flex gap-2">
+
+              Priority:
+
+              {!isAdmin || row.locked ? (
+                <span className={getPriorityColor(row.priority)}>
+                  {row.priority}
+                </span>
+              ) : (
+                <select
+                  value={row.priority}
+                  onChange={(e) =>
+                    updateRow(row.id, {
+                      priority: e.target.value,
+                    })
+                  }
+                  className="bg-gray-700 px-2 py-1 rounded text-sm"
+                >
+                  {PRIORITIES.map(p => (
+                    <option key={p}>{p}</option>
+                  ))}
+                </select>
+              )}
+
+            </div>
+
+            {/* Admin Note */}
+            <div className="mt-2">
+
+              <div className="text-xs text-gray-400 mb-1">
+                Admin Note
+              </div>
+
+              {!isAdmin || row.locked ? (
+                <div className="text-sm text-gray-300">
+                  {row.admin_note || '—'}
+                </div>
+              ) : (
+                <textarea
+                  defaultValue={row.admin_note || ''}
+                  onBlur={(e) =>
+                    updateRow(row.id, {
+                      admin_note: e.target.value,
+                    })
+                  }
+                  className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
+                  rows={2}
+                />
+              )}
+
+            </div>
+
+            {/* Status */}
             {row.status && (
-              <div className="text-xs text-gray-400 mt-1">
+              <div className="text-xs text-gray-400 mt-2">
 
                 {row.status === 'approved' && (
                   <>Approved by {row.reviewed_by}</>
@@ -289,16 +360,25 @@ export default function PrioPage() {
 
                 <button
                   onClick={() => updateStatus(row.id, 'approved')}
-                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs"
+                  disabled={row.locked}
+                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs disabled:opacity-50"
                 >
                   Approve
                 </button>
 
                 <button
                   onClick={() => updateStatus(row.id, 'rejected')}
-                  className="bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded text-xs"
+                  disabled={row.locked}
+                  className="bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded text-xs disabled:opacity-50"
                 >
                   Reject
+                </button>
+
+                <button
+                  onClick={() => toggleLock(row)}
+                  className="bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded text-xs"
+                >
+                  {row.locked ? 'Unlock' : 'Lock'}
                 </button>
 
                 <button
