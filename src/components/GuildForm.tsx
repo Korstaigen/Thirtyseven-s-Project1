@@ -1,21 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 
 export default function GuildForm() {
-  const searchParams = useSearchParams()
-  const itemId = searchParams.get('item')
-
+  const [itemId, setItemId] = useState<string | null>(null)
   const [itemName, setItemName] = useState<string>('')
 
   useEffect(() => {
-    if (!itemId) return
+    // Read URL params after hydration
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('item')
+
+    if (!id) return
+
+    setItemId(id)
 
     async function loadItem() {
       try {
         const res = await fetch(
-          `https://database.turtlecraft.gg/api/item/${itemId}`
+          `https://database.turtlecraft.gg/api/item/${id}`
         )
 
         const data = await res.json()
@@ -26,7 +29,7 @@ export default function GuildForm() {
     }
 
     loadItem()
-  }, [itemId])
+  }, [])
 
   return (
     <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow">
@@ -43,7 +46,8 @@ export default function GuildForm() {
             Character Name
           </label>
           <input
-            className="w-full px-3 py-2 rounded bg-gray-700"
+            className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+            placeholder="Character name"
           />
         </div>
 
@@ -52,7 +56,7 @@ export default function GuildForm() {
           <label className="block text-sm mb-1">
             Class
           </label>
-          <select className="w-full px-3 py-2 rounded bg-gray-700">
+          <select className="w-full px-3 py-2 rounded bg-gray-700 text-white">
             <option>Warrior</option>
             <option>Mage</option>
             <option>Priest</option>
@@ -70,7 +74,7 @@ export default function GuildForm() {
           <label className="block text-sm mb-1">
             Raid
           </label>
-          <select className="w-full px-3 py-2 rounded bg-gray-700">
+          <select className="w-full px-3 py-2 rounded bg-gray-700 text-white">
             <option>Molten Core</option>
             <option>Blackwing Lair</option>
             <option>AQ40</option>
@@ -85,7 +89,7 @@ export default function GuildForm() {
           </label>
 
           <input
-            className="w-full px-3 py-2 rounded bg-gray-700"
+            className="w-full px-3 py-2 rounded bg-gray-700 text-white"
             value={itemName}
             readOnly
             placeholder="Open from Turtle DB"
@@ -103,16 +107,17 @@ export default function GuildForm() {
           <label className="block text-sm mb-1">
             Priority
           </label>
-          <select className="w-full px-3 py-2 rounded bg-gray-700">
+          <select className="w-full px-3 py-2 rounded bg-gray-700 text-white">
             <option>Low</option>
             <option>Medium</option>
             <option>High</option>
           </select>
         </div>
 
+        {/* Submit */}
         <button
           type="button"
-          className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-semibold"
+          className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-semibold transition"
         >
           Submit Request
         </button>
