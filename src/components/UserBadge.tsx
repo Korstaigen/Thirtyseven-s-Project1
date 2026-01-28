@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/supabase/client'
+import LootSystemModal from './LootSystemModal'
 
 export default function UserBadge() {
   const supabase = createClient()
 
   const [user, setUser] = useState<any>(null)
+  const [showLoot, setShowLoot] = useState(false)
 
   useEffect(() => {
     async function loadUser() {
@@ -24,7 +26,6 @@ export default function UserBadge() {
     user.user_metadata?.full_name ||
     'User'
 
-  // Remove #1234 or !1234
   const cleanName = rawName
     .split('#')[0]
     .split('!')[0]
@@ -32,26 +33,48 @@ export default function UserBadge() {
   const avatar = user.user_metadata?.avatar_url
 
   return (
-    <div className="flex items-center gap-3 bg-gray-800 px-4 py-2 rounded-lg shadow">
+    <>
+      <div className="flex flex-col gap-2 bg-gray-800 px-4 py-3 rounded-lg shadow">
 
-      {avatar && (
-        <img
-          src={avatar}
-          alt="avatar"
-          className="w-9 h-9 rounded-full"
-        />
-      )}
+        {/* User Row */}
+        <div className="flex items-center gap-3">
 
-      <div className="text-sm leading-tight">
-        <div className="font-semibold">
-          {cleanName}
+          {avatar && (
+            <img
+              src={avatar}
+              alt="avatar"
+              className="w-9 h-9 rounded-full"
+            />
+          )}
+
+          <div className="text-sm leading-tight">
+            <div className="font-semibold">
+              {cleanName}
+            </div>
+
+            <div className="text-green-400 text-xs">
+              Logged in
+            </div>
+          </div>
+
         </div>
 
-        <div className="text-green-400 text-xs">
-          Logged in
-        </div>
+        {/* Loot Button */}
+        <button
+          onClick={() => setShowLoot(true)}
+          className="text-xs text-blue-400 hover:text-blue-300 text-left"
+        >
+          Loot System
+        </button>
+
       </div>
 
-    </div>
+      {/* Modal */}
+      {showLoot && (
+        <LootSystemModal
+          onClose={() => setShowLoot(false)}
+        />
+      )}
+    </>
   )
 }
