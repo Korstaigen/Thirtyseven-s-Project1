@@ -11,6 +11,8 @@ type LootRow = {
   item_name: string
   priority: string
   created_at: string
+  status?: string
+  admin_comment?: string
 }
 
 export default function PrioPage() {
@@ -18,6 +20,8 @@ export default function PrioPage() {
 
   const [rows, setRows] = useState<LootRow[]>([])
   const [filteredRows, setFilteredRows] = useState<LootRow[]>([])
+
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -31,6 +35,21 @@ export default function PrioPage() {
   /* Load data */
   useEffect(() => {
     async function load() {
+
+      /* Get user + admin */
+      const { data: userData } = await supabase.auth.getUser()
+
+      if (userData.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', userData.user.id)
+          .single()
+
+        setIsAdmin(!!profile?.is_admin)
+      }
+
+      /* Get loot requests */
       const { data, error } = await supabase
         .from('loot_requests')
         .select('*')
@@ -99,7 +118,35 @@ export default function PrioPage() {
     return 'text-gray-300'
   }
 
-  /* Unique values for dropdowns */
+  /* Admin Actions */
+
+  async function updateStatus(id: number, status: string) {
+    const { error } = await supabase
+      .from('loot_requests')
+      .update({ status })
+      .eq('id', id)
+
+    if (!error) {
+      setRows(prev =>
+        prev.map(r =>
+          r.id === id ? { ...r, status } : r
+        )
+      )
+    }
+  }
+
+  async function deleteRequest(id: number) {
+    const { error } = await supabase
+      .from('loot_requests')
+      .delete()
+      .eq('id', id)
+
+    if (!error) {
+      setRows(prev => prev.filter(r => r.id !== id))
+    }
+  }
+
+  /* Dropdown values */
   const raids = ['All', ...new Set(rows.map(r => r.raid))]
   const classes = ['All', ...new Set(rows.map(r => r.class))]
   const priorities = ['All', 'Low', 'Medium', 'High']
@@ -222,9 +269,43 @@ export default function PrioPage() {
               </span>
             </div>
 
+            {row.status && (
+              <div className="text-xs text-gray-400 mt-1">
+                Status: {row.status}
+              </div>
+            )}
+
             <div className="text-xs text-gray-500 mt-1">
               {new Date(row.created_at).toLocaleString()}
             </div>
+
+            {/* Admin Controls */}
+            {isAdmin && (
+              <div className="mt-3 flex gap-2 flex-wrap">
+
+                <button
+                  onClick={() => updateStatus(row.id, 'approved')}
+                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs"
+                >
+                  Approve
+                </button>
+
+                <button
+                  onClick={() => updateStatus(row.id, 'rejected')}
+                  className="bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded text-xs"
+                >
+                  Reject
+                </button>
+
+                <button
+                  onClick={() => deleteRequest(row.id)}
+                  className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs"
+                >
+                  Delete
+                </button>
+
+              </div>
+            )}
 
           </div>
         ))}
