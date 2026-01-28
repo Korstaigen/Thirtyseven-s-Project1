@@ -14,9 +14,26 @@ export default function Home() {
         />
       </div>
 
-      {/* Top Right User */}
-      <div className="absolute top-4 right-4 z-40">
+      {/* Top Right Panel */}
+      <div className="absolute top-4 right-4 z-40 flex flex-col gap-2">
+
         <UserBadge />
+
+        <button
+          id="loot-button"
+          className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded shadow text-sm"
+        >
+          Loot System
+        </button>
+
+        <a href="/prio">
+          <button
+            className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded shadow text-sm w-full"
+          >
+            Raid Priorities
+          </button>
+        </a>
+
       </div>
 
       {/* Center Content */}
