@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
     const redirectUrl =
       'https://ypwlkgaebzpnmpeazkqg.supabase.co/auth/v1/authorize' +
       '?provider=discord' +
-      '&redirect_to=https://thirtyseven-s-project1.vercel.app'
+      '&redirect_to=https://thirtyseven-s-project1.vercel.app/auth/callback'
 
     return NextResponse.redirect(redirectUrl)
   }
