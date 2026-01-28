@@ -2,7 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next()
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,9 +17,9 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookies) {
-          cookies.forEach(({ name, value, options }) =>
+          cookies.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options)
-          )
+          })
         },
       },
     }
@@ -25,12 +29,12 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Skip auth routes
+  // Allow auth routes
   if (request.nextUrl.pathname.startsWith('/auth')) {
     return response
   }
 
-  // Not logged in → redirect to Discord
+  // Not logged in → redirect
   if (!user) {
     const redirectUrl =
       'https://ypwlkgaebzpnmpeazkqg.supabase.co/auth/v1/authorize' +
