@@ -9,12 +9,12 @@ export default function UserBadge() {
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    async function load() {
+    async function loadUser() {
       const { data } = await supabase.auth.getUser()
       setUser(data.user)
     }
 
-    load()
+    loadUser()
   }, [])
 
   if (!user) return null
@@ -23,17 +23,17 @@ export default function UserBadge() {
   const avatar = user.user_metadata?.avatar_url
 
   return (
-    <div className="flex items-center gap-3 bg-gray-800 px-4 py-2 rounded">
+    <div className="flex items-center gap-3 bg-gray-800 px-4 py-2 rounded-lg shadow">
 
       {avatar && (
         <img
           src={avatar}
           alt="avatar"
-          className="w-8 h-8 rounded-full"
+          className="w-9 h-9 rounded-full"
         />
       )}
 
-      <div className="text-sm">
+      <div className="text-sm leading-tight">
         <div className="font-semibold">
           {name}
         </div>
