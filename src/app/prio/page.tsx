@@ -12,7 +12,7 @@ type LootRow = {
   priority: string
   created_at: string
   status?: string
-  admin_comment?: string
+  reviewed_by?: string
 }
 
 export default function PrioPage() {
@@ -22,6 +22,7 @@ export default function PrioPage() {
   const [filteredRows, setFilteredRows] = useState<LootRow[]>([])
 
   const [isAdmin, setIsAdmin] = useState(false)
+  const [adminName, setAdminName] = useState('')
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -32,14 +33,21 @@ export default function PrioPage() {
   const [priorityFilter, setPriorityFilter] = useState('All')
   const [dateFilter, setDateFilter] = useState('All')
 
-  /* Load data */
+  /* Load */
   useEffect(() => {
     async function load() {
 
-      /* Get user + admin */
+      /* Get user */
       const { data: userData } = await supabase.auth.getUser()
 
       if (userData.user) {
+
+        // Clean Discord name
+        const raw =
+          userData.user.user_metadata?.name || 'Admin'
+
+        setAdminName(raw.split('#')[0])
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('is_admin')
@@ -49,7 +57,7 @@ export default function PrioPage() {
         setIsAdmin(!!profile?.is_admin)
       }
 
-      /* Get loot requests */
+      /* Get requests */
       const { data, error } = await supabase
         .from('loot_requests')
         .select('*')
@@ -68,7 +76,7 @@ export default function PrioPage() {
     load()
   }, [])
 
-  /* Apply filters */
+  /* Filters */
   useEffect(() => {
     let result = [...rows]
 
@@ -118,24 +126,34 @@ export default function PrioPage() {
     return 'text-gray-300'
   }
 
-  /* Admin Actions */
-
+  /* Admin */
   async function updateStatus(id: number, status: string) {
+
     const { error } = await supabase
       .from('loot_requests')
-      .update({ status })
+      .update({
+        status,
+        reviewed_by: adminName,
+      })
       .eq('id', id)
 
     if (!error) {
       setRows(prev =>
         prev.map(r =>
-          r.id === id ? { ...r, status } : r
+          r.id === id
+            ? {
+                ...r,
+                status,
+                reviewed_by: adminName,
+              }
+            : r
         )
       )
     }
   }
 
   async function deleteRequest(id: number) {
+
     const { error } = await supabase
       .from('loot_requests')
       .delete()
@@ -146,7 +164,7 @@ export default function PrioPage() {
     }
   }
 
-  /* Dropdown values */
+  /* Dropdowns */
   const raids = ['All', ...new Set(rows.map(r => r.raid))]
   const classes = ['All', ...new Set(rows.map(r => r.class))]
   const priorities = ['All', 'Low', 'Medium', 'High']
@@ -182,7 +200,6 @@ export default function PrioPage() {
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
 
-          {/* Raid */}
           <select
             value={raidFilter}
             onChange={(e) => setRaidFilter(e.target.value)}
@@ -193,7 +210,6 @@ export default function PrioPage() {
             ))}
           </select>
 
-          {/* Class */}
           <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
@@ -204,7 +220,6 @@ export default function PrioPage() {
             ))}
           </select>
 
-          {/* Priority */}
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
@@ -215,28 +230,9 @@ export default function PrioPage() {
             ))}
           </select>
 
-          {/* Date */}
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="bg-gray-800 px-3 py-2 rounded text-sm"
-          >
-            <option value="All">All Time</option>
-            <option value="Today">Today</option>
-            <option value="7days">Last 7 Days</option>
-            <option value="30days">Last 30 Days</option>
-          </select>
-
         </div>
 
       </div>
-
-      {/* Empty */}
-      {filteredRows.length === 0 && (
-        <p className="text-gray-400">
-          No results found.
-        </p>
-      )}
 
       {/* Results */}
       <div className="space-y-4">
@@ -271,7 +267,15 @@ export default function PrioPage() {
 
             {row.status && (
               <div className="text-xs text-gray-400 mt-1">
-                Status: {row.status}
+
+                {row.status === 'approved' && (
+                  <>Approved by {row.reviewed_by}</>
+                )}
+
+                {row.status === 'rejected' && (
+                  <>Rejected by {row.reviewed_by}</>
+                )}
+
               </div>
             )}
 
