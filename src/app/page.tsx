@@ -1,4 +1,5 @@
 import GuildForm from '@/components/GuildForm'
+import UserBadge from '@/components/UserBadge'
 
 export default function Home() {
   return (
