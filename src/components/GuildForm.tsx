@@ -91,8 +91,8 @@ export default function GuildForm() {
           <input
             className="w-full px-3 py-2 rounded bg-gray-700 text-white"
             value={itemName}
-            readOnly
-            placeholder="Open from Turtle DB"
+            onChange={(e) => setItemName(e.target.value)}
+            placeholder="Paste item name or open from Turtle DB"
           />
 
           {itemId && (
