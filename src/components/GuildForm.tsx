@@ -1,44 +1,152 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+
+type Priority = 'Low' | 'Medium' | 'High'
+
+type ItemEntry = {
+  item: string
+  priority: Priority
+}
+
+type RaidEntry = {
+  raid: string
+  items: ItemEntry[]
+}
+
+/* Mock DB (move to Supabase later) */
+const RAID_ITEMS: Record<string, string[]> = {
+  MoltenCore: [
+    'Perdition’s Blade',
+    'Onslaught Girdle',
+    'Cenarion Boots',
+  ],
+
+  BWL: [
+    'Ashkandi',
+    'Neltharion’s Tear',
+    'Rejuvenating Gem',
+  ],
+
+  AQ40: [
+    'Dark Edge of Insanity',
+    'Ring of the Fallen God',
+  ],
+
+  Naxxramas: [
+    'Corrupted Ashbringer',
+    'Might of Menethil',
+    'Atiesh',
+  ],
+}
+
+const RAIDS = [
+  'MoltenCore',
+  'BWL',
+  'AQ40',
+  'Naxxramas',
+]
 
 export default function GuildForm() {
-  const [itemId, setItemId] = useState<string | null>(null)
-  const [itemName, setItemName] = useState<string>('')
+  const [multiRaid, setMultiRaid] = useState(false)
 
-  useEffect(() => {
-    // Read URL params after hydration
-    const params = new URLSearchParams(window.location.search)
-    const id = params.get('item')
+  const [raids, setRaids] = useState<RaidEntry[]>([
+    {
+      raid: 'MoltenCore',
+      items: [{ item: '', priority: 'Medium' }],
+    },
+  ])
 
-    if (!id) return
-
-    setItemId(id)
-
-    async function loadItem() {
-      try {
-        const res = await fetch(
-          `https://database.turtlecraft.gg/api/item/${id}`
-        )
-
-        const data = await res.json()
-        setItemName(data.name)
-      } catch {
-        setItemName('Unknown item')
-      }
+  /* Toggle mode */
+  function toggleMultiRaid() {
+    if (!multiRaid) {
+      setRaids([
+        {
+          raid: 'MoltenCore',
+          items: [{ item: '', priority: 'Medium' }],
+        },
+      ])
     }
 
-    loadItem()
-  }, [])
+    setMultiRaid(!multiRaid)
+  }
+
+  /* Add raid block */
+  function addRaid() {
+    if (raids.length >= 8) return
+
+    setRaids([
+      ...raids,
+      {
+        raid: 'MoltenCore',
+        items: [{ item: '', priority: 'Medium' }],
+      },
+    ])
+  }
+
+  /* Remove raid block */
+  function removeRaid(index: number) {
+    const copy = [...raids]
+    copy.splice(index, 1)
+    setRaids(copy)
+  }
+
+  /* Update raid */
+  function updateRaid(index: number, value: string) {
+    const copy = [...raids]
+    copy[index].raid = value
+    copy[index].items = [{ item: '', priority: 'Medium' }]
+    setRaids(copy)
+  }
+
+  /* Add item */
+  function addItem(raidIndex: number) {
+    const copy = [...raids]
+    copy[raidIndex].items.push({
+      item: '',
+      priority: 'Medium',
+    })
+    setRaids(copy)
+  }
+
+  /* Remove item */
+  function removeItem(raidIndex: number, itemIndex: number) {
+    const copy = [...raids]
+    copy[raidIndex].items.splice(itemIndex, 1)
+    setRaids(copy)
+  }
+
+  /* Update item */
+  function updateItem(
+    raidIndex: number,
+    itemIndex: number,
+    value: string
+  ) {
+    const copy = [...raids]
+    copy[raidIndex].items[itemIndex].item = value
+    setRaids(copy)
+  }
+
+  /* Update priority */
+  function updatePriority(
+    raidIndex: number,
+    itemIndex: number,
+    value: Priority
+  ) {
+    const copy = [...raids]
+    copy[raidIndex].items[itemIndex].priority = value
+    setRaids(copy)
+  }
 
   return (
-    <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg shadow">
+    <div className="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow">
 
-      <h1 className="text-2xl font-bold mb-4 text-center">
-        Turtle WoW Guild Panel
+      {/* Title */}
+      <h1 className="text-3xl font-bold mb-6 text-center">
+        Skip Mechanics – Prio & HR
       </h1>
 
-      <form className="space-y-4">
+      <form className="space-y-6">
 
         {/* Character */}
         <div>
@@ -47,7 +155,6 @@ export default function GuildForm() {
           </label>
           <input
             className="w-full px-3 py-2 rounded bg-gray-700 text-white"
-            placeholder="Character name"
           />
         </div>
 
@@ -69,57 +176,168 @@ export default function GuildForm() {
           </select>
         </div>
 
-        {/* Raid */}
-        <div>
-          <label className="block text-sm mb-1">
-            Raid
-          </label>
-          <select className="w-full px-3 py-2 rounded bg-gray-700 text-white">
-            <option>Molten Core</option>
-            <option>Blackwing Lair</option>
-            <option>AQ40</option>
-            <option>Naxxramas</option>
-          </select>
-        </div>
-
-        {/* Item */}
-        <div>
-          <label className="block text-sm mb-1">
-            Item
-          </label>
-
+        {/* Multi-Raid Toggle */}
+        <div className="flex items-center gap-3">
           <input
-            className="w-full px-3 py-2 rounded bg-gray-700 text-white"
-            value={itemName}
-            onChange={(e) => setItemName(e.target.value)}
-            placeholder="Paste item name or open from Turtle DB"
+            type="checkbox"
+            checked={multiRaid}
+            onChange={toggleMultiRaid}
+            className="w-4 h-4"
           />
 
-          {itemId && (
-            <p className="text-xs text-gray-400 mt-1">
-              Item ID: {itemId}
-            </p>
-          )}
+          <label className="text-sm">
+            Enable Multi-Raid Mode (up to 8 raids)
+          </label>
         </div>
 
-        {/* Priority */}
-        <div>
-          <label className="block text-sm mb-1">
-            Priority
-          </label>
-          <select className="w-full px-3 py-2 rounded bg-gray-700 text-white">
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-          </select>
+        {/* Raid Blocks */}
+        <div className="space-y-8">
+
+          {raids.map((raidBlock, raidIndex) => {
+            const availableItems =
+              RAID_ITEMS[raidBlock.raid] || []
+
+            return (
+              <div
+                key={raidIndex}
+                className="border border-gray-700 rounded-lg p-4"
+              >
+
+                {/* Raid Header */}
+                <div className="flex items-center justify-between mb-3">
+
+                  <div className="flex items-center gap-3">
+
+                    <span className="font-semibold">
+                      Raid {raidIndex + 1}
+                    </span>
+
+                    <select
+                      className="px-3 py-2 rounded bg-gray-700 text-white"
+                      value={raidBlock.raid}
+                      onChange={(e) =>
+                        updateRaid(raidIndex, e.target.value)
+                      }
+                    >
+                      {RAIDS.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+
+                  </div>
+
+                  {multiRaid && raids.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeRaid(raidIndex)}
+                      className="text-red-400 hover:text-red-500 text-sm"
+                    >
+                      Remove Raid
+                    </button>
+                  )}
+                </div>
+
+                {/* Items */}
+                <div className="space-y-2">
+
+                  {raidBlock.items.map((row, itemIndex) => (
+                    <div
+                      key={itemIndex}
+                      className="grid grid-cols-12 gap-2 items-center"
+                    >
+
+                      {/* Item */}
+                      <select
+                        className="col-span-7 px-3 py-2 rounded bg-gray-700 text-white"
+                        value={row.item}
+                        onChange={(e) =>
+                          updateItem(
+                            raidIndex,
+                            itemIndex,
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">
+                          Select item
+                        </option>
+
+                        {availableItems.map((item) => (
+                          <option
+                            key={item}
+                            value={item}
+                          >
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Priority */}
+                      <select
+                        className="col-span-3 px-3 py-2 rounded bg-gray-700 text-white"
+                        value={row.priority}
+                        onChange={(e) =>
+                          updatePriority(
+                            raidIndex,
+                            itemIndex,
+                            e.target.value as Priority
+                          )
+                        }
+                      >
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                      </select>
+
+                      {/* Remove Item */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeItem(raidIndex, itemIndex)
+                        }
+                        className="col-span-2 text-right text-red-400 hover:text-red-500"
+                      >
+                        ✕
+                      </button>
+
+                    </div>
+                  ))}
+
+                  {/* Add Item */}
+                  <button
+                    type="button"
+                    onClick={() => addItem(raidIndex)}
+                    className="text-sm text-green-400 hover:text-green-500 mt-2"
+                  >
+                    + Add Item
+                  </button>
+
+                </div>
+              </div>
+            )
+          })}
+
         </div>
+
+        {/* Add Raid */}
+        {multiRaid && raids.length < 8 && (
+          <button
+            type="button"
+            onClick={addRaid}
+            className="w-full bg-gray-700 hover:bg-gray-600 py-2 rounded text-sm"
+          >
+            + Add Another Raid
+          </button>
+        )}
 
         {/* Submit */}
         <button
           type="button"
-          className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-semibold transition"
+          className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded font-semibold text-lg"
         >
-          Submit Request
+          Submit Priorities
         </button>
 
       </form>
