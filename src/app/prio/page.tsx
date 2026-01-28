@@ -10,27 +10,37 @@ type LootRow = {
   raid: string
   item_name: string
   priority: string
+  created_at: string
 }
 
 export default function PrioPage() {
   const supabase = createClient()
 
   const [rows, setRows] = useState<LootRow[]>([])
+  const [filteredRows, setFilteredRows] = useState<LootRow[]>([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  /* Filters */
+  const [raidFilter, setRaidFilter] = useState('All')
+  const [classFilter, setClassFilter] = useState('All')
+  const [priorityFilter, setPriorityFilter] = useState('All')
+  const [dateFilter, setDateFilter] = useState('All')
+
+  /* Load data */
   useEffect(() => {
     async function load() {
       const { data, error } = await supabase
         .from('loot_requests')
         .select('*')
-        .order('raid', { ascending: true })
-        .order('item_name', { ascending: true })
+        .order('created_at', { ascending: false })
 
       if (error) {
         setError(error.message)
       } else {
         setRows(data || [])
+        setFilteredRows(data || [])
       }
 
       setLoading(false)
@@ -38,6 +48,63 @@ export default function PrioPage() {
 
     load()
   }, [])
+
+  /* Apply filters */
+  useEffect(() => {
+    let result = [...rows]
+
+    if (raidFilter !== 'All') {
+      result = result.filter(r => r.raid === raidFilter)
+    }
+
+    if (classFilter !== 'All') {
+      result = result.filter(r => r.class === classFilter)
+    }
+
+    if (priorityFilter !== 'All') {
+      result = result.filter(r => r.priority === priorityFilter)
+    }
+
+    if (dateFilter !== 'All') {
+      const now = new Date()
+
+      result = result.filter(r => {
+        const created = new Date(r.created_at)
+
+        if (dateFilter === 'Today') {
+          return created.toDateString() === now.toDateString()
+        }
+
+        if (dateFilter === '7days') {
+          return now.getTime() - created.getTime() <= 7 * 86400000
+        }
+
+        if (dateFilter === '30days') {
+          return now.getTime() - created.getTime() <= 30 * 86400000
+        }
+
+        return true
+      })
+    }
+
+    setFilteredRows(result)
+
+  }, [raidFilter, classFilter, priorityFilter, dateFilter, rows])
+
+  /* Helpers */
+  function getPriorityColor(priority: string) {
+    if (priority === 'High') return 'text-red-400 font-semibold'
+    if (priority === 'Medium') return 'text-yellow-400'
+    if (priority === 'Low') return 'text-green-400'
+    return 'text-gray-300'
+  }
+
+  /* Unique values for dropdowns */
+  const raids = ['All', ...new Set(rows.map(r => r.raid))]
+  const classes = ['All', ...new Set(rows.map(r => r.class))]
+  const priorities = ['All', 'Low', 'Medium', 'High']
+
+  /* UI */
 
   if (loading) {
     return (
@@ -50,7 +117,6 @@ export default function PrioPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-6">
-        <h1 className="text-2xl font-bold mb-4">Raid Priorities</h1>
         <p className="text-red-400">{error}</p>
       </div>
     )
@@ -59,23 +125,81 @@ export default function PrioPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
 
-      <h1 className="text-3xl font-bold mb-6">
-        Raid Priority Overview
-      </h1>
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
 
-      {rows.length === 0 && (
+        <h1 className="text-3xl font-bold">
+          Raid Priority Overview
+        </h1>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3">
+
+          {/* Raid */}
+          <select
+            value={raidFilter}
+            onChange={(e) => setRaidFilter(e.target.value)}
+            className="bg-gray-800 px-3 py-2 rounded text-sm"
+          >
+            {raids.map(r => (
+              <option key={r}>{r}</option>
+            ))}
+          </select>
+
+          {/* Class */}
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="bg-gray-800 px-3 py-2 rounded text-sm"
+          >
+            {classes.map(c => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+
+          {/* Priority */}
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="bg-gray-800 px-3 py-2 rounded text-sm"
+          >
+            {priorities.map(p => (
+              <option key={p}>{p}</option>
+            ))}
+          </select>
+
+          {/* Date */}
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="bg-gray-800 px-3 py-2 rounded text-sm"
+          >
+            <option value="All">All Time</option>
+            <option value="Today">Today</option>
+            <option value="7days">Last 7 Days</option>
+            <option value="30days">Last 30 Days</option>
+          </select>
+
+        </div>
+
+      </div>
+
+      {/* Empty */}
+      {filteredRows.length === 0 && (
         <p className="text-gray-400">
-          No priorities submitted yet.
+          No results found.
         </p>
       )}
 
+      {/* Results */}
       <div className="space-y-4">
 
-        {rows.map((row) => (
+        {filteredRows.map((row) => (
           <div
             key={row.id}
             className="bg-gray-800 p-4 rounded shadow"
           >
+
             <div className="font-semibold">
               {row.character_name}
             </div>
@@ -93,19 +217,13 @@ export default function PrioPage() {
 
             <div className="text-sm">
               Priority:{' '}
-              <span
-                className={
-                  row.priority === 'High'
-                    ? 'text-red-400 font-semibold'
-                    : row.priority === 'Medium'
-                    ? 'text-yellow-400'
-                    : row.priority === 'Low'
-                    ? 'text-green-400'
-                    : 'text-gray-300'
-                }
-              >
+              <span className={getPriorityColor(row.priority)}>
                 {row.priority}
               </span>
+            </div>
+
+            <div className="text-xs text-gray-500 mt-1">
+              {new Date(row.created_at).toLocaleString()}
             </div>
 
           </div>
