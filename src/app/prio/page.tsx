@@ -8,7 +8,7 @@ type LootRow = {
   character_name: string
   class: string
   raid: string
-  item: string
+  item_name: string
   priority: string
 }
 
@@ -25,7 +25,7 @@ export default function PrioPage() {
         .from('loot_requests')
         .select('*')
         .order('raid', { ascending: true })
-        .order('item', { ascending: true })
+        .order('item_name', { ascending: true })
 
       if (error) {
         setError(error.message)
@@ -87,7 +87,7 @@ export default function PrioPage() {
             <div className="mt-2 text-sm">
               Item:{' '}
               <span className="text-blue-400">
-                {row.item}
+                {row.item_name}
               </span>
             </div>
 
