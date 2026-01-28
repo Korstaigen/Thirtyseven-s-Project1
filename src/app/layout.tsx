@@ -14,7 +14,7 @@ const defaultUrl = process.env.VERCEL_URL
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
 
-  title: "Thirtyseven’s Tool – Skip Mechanics HR & Item Prio",
+  title: "Thirtyseven’s Website for Skip Mechanics HR & Item Prio Management",
 
   description:
     "Guild tool for managing loot priority, hard reserves, and raid planning in Skip Mechanics.",
