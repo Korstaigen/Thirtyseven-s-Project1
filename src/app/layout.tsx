@@ -13,8 +13,11 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: 'Next.js and Supabase Starter Kit',
-  description: 'The fastest way to build apps with Next.js and Supabase',
+
+  title: "Thirtyseven’s Tool – Skip Mechanics HR & Item Prio",
+
+  description:
+    "Guild tool for managing loot priority, hard reserves, and raid planning in Skip Mechanics.",
 }
 
 const geistSans = Geist({
@@ -31,7 +34,13 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.className} antialiased`}>
-        <NextTopLoader showSpinner={false} height={2} color="#2acf80" />
+
+        <NextTopLoader
+          showSpinner={false}
+          height={2}
+          color="#2acf80"
+        />
+
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -39,11 +48,15 @@ export default function RootLayout({ children }: RootLayoutProps) {
           disableTransitionOnChange
         >
           <ReactQueryProvider>
+
             {children}
+
             <Analytics />
             <ReactQueryDevtools initialIsOpen={false} />
+
           </ReactQueryProvider>
         </ThemeProvider>
+
       </body>
     </html>
   )
