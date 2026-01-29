@@ -4,7 +4,7 @@ import HardReserves from '@components/HardReserves'
 
 export default function Home() {
   return (
-    <main className="flex flex-wrap min-h-screen bg-gray-900 text-white relative overflow-hidden">
+    <main className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
       {/* Top Left GIF */}
       <div className="absolute top-4 left-4 z-40">
         <img
@@ -25,7 +25,7 @@ export default function Home() {
       </div>
 
       {/* Main Center Form */}
-      <div className="flex items-center justify-center min-h-screen px-6">
+      <div className="flex items-center justify-center min-h-screen px-4">
         <GuildForm />
       </div>
     </main>
