@@ -16,6 +16,7 @@ type LootRow = {
   status?: string
   reviewed_by?: string
 
+  user_note?: string
   admin_note?: string
   locked?: boolean
 }
@@ -63,7 +64,10 @@ export default function PrioPage() {
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('All')
 
-  /* Load */
+  /* -------------------------------- */
+  /* LOAD */
+  /* -------------------------------- */
+
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser()
@@ -101,7 +105,10 @@ export default function PrioPage() {
     load()
   }, [])
 
-  /* Apply Filters */
+  /* -------------------------------- */
+  /* FILTERS */
+  /* -------------------------------- */
+
   useEffect(() => {
     let result = [...rows]
 
@@ -164,7 +171,10 @@ export default function PrioPage() {
     rows,
   ])
 
-  /* Helpers */
+  /* -------------------------------- */
+  /* HELPERS */
+  /* -------------------------------- */
+
   function getPriorityColor(priority: string) {
     if (priority === 'HR') return 'text-purple-400 font-bold'
     if (priority === 'High') return 'text-red-400 font-semibold'
@@ -173,7 +183,9 @@ export default function PrioPage() {
     return 'text-gray-300'
   }
 
-  /* Admin Actions */
+  /* -------------------------------- */
+  /* ADMIN ACTIONS */
+  /* -------------------------------- */
 
   async function updateRow(
     id: number,
@@ -213,12 +225,17 @@ export default function PrioPage() {
     })
   }
 
-  /* Dropdowns */
+  /* -------------------------------- */
+  /* DROPDOWNS */
+  /* -------------------------------- */
+
   const raids = ['All', ...new Set(rows.map(r => r.raid))]
   const classes = ['All', ...new Set(rows.map(r => r.class))]
   const priorities = ['All', ...PRIORITIES]
 
+  /* -------------------------------- */
   /* UI */
+  /* -------------------------------- */
 
   if (loading) {
     return (
@@ -249,7 +266,6 @@ export default function PrioPage() {
         {/* Filters */}
         <div className="flex gap-3 flex-wrap items-center">
 
-          {/* Search */}
           <input
             type="text"
             placeholder="Search player or item..."
@@ -258,7 +274,6 @@ export default function PrioPage() {
             className="bg-gray-800 px-3 py-2 rounded text-sm w-56"
           />
 
-          {/* Raid */}
           <select
             value={raidFilter}
             onChange={(e) => setRaidFilter(e.target.value)}
@@ -269,7 +284,6 @@ export default function PrioPage() {
             ))}
           </select>
 
-          {/* Class */}
           <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
@@ -280,7 +294,6 @@ export default function PrioPage() {
             ))}
           </select>
 
-          {/* Slot */}
           <select
             value={slotFilter}
             onChange={(e) => setSlotFilter(e.target.value)}
@@ -291,7 +304,6 @@ export default function PrioPage() {
             ))}
           </select>
 
-          {/* Priority */}
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
@@ -302,7 +314,6 @@ export default function PrioPage() {
             ))}
           </select>
 
-          {/* Date */}
           <select
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
@@ -391,29 +402,43 @@ export default function PrioPage() {
 
             </div>
 
-            {/* Admin Note */}
-            <div className="mt-2">
+            {/* NOTES */}
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
 
-              <div className="text-xs text-gray-400 mb-1">
-                Admin Note
+              {/* User Note */}
+              <div>
+                <div className="text-xs text-gray-400 mb-1">
+                  User Comment
+                </div>
+
+                <div className="text-sm bg-gray-700 px-2 py-1 rounded min-h-[40px]">
+                  {row.user_note || '—'}
+                </div>
               </div>
 
-              {!isAdmin || row.locked ? (
-                <div className="text-sm text-gray-300">
-                  {row.admin_note || '—'}
+              {/* Admin Note */}
+              <div>
+                <div className="text-xs text-gray-400 mb-1">
+                  Admin Note
                 </div>
-              ) : (
-                <textarea
-                  defaultValue={row.admin_note || ''}
-                  onBlur={(e) =>
-                    updateRow(row.id, {
-                      admin_note: e.target.value,
-                    })
-                  }
-                  className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
-                  rows={2}
-                />
-              )}
+
+                {!isAdmin || row.locked ? (
+                  <div className="text-sm bg-gray-700 px-2 py-1 rounded min-h-[40px]">
+                    {row.admin_note || '—'}
+                  </div>
+                ) : (
+                  <textarea
+                    defaultValue={row.admin_note || ''}
+                    onBlur={(e) =>
+                      updateRow(row.id, {
+                        admin_note: e.target.value,
+                      })
+                    }
+                    className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
+                    rows={2}
+                  />
+                )}
+              </div>
 
             </div>
 
