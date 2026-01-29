@@ -58,7 +58,7 @@ export default function OnlineUsers() {
 
           setUsers(list)
         })
-        .subscribe(async (status) => {
+        .subscribe(async (status: string) => {
           if (status === 'SUBSCRIBED') {
             await channel.track(payload)
           }
