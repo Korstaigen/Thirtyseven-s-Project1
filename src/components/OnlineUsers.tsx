@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/supabase/client'
+import type {
+  RealtimeChannel,
+  RealtimeChannelStatus,
+} from '@supabase/supabase-js'
 
 type OnlineUser = {
   id: string
@@ -16,7 +20,7 @@ export default function OnlineUsers() {
   const [users, setUsers] = useState<OnlineUser[]>([])
 
   useEffect(() => {
-    let channel: any
+    let channel: RealtimeChannel | null = null
 
     async function init() {
       const { data } = await supabase.auth.getUser()
@@ -30,7 +34,7 @@ export default function OnlineUsers() {
         .eq('id', data.user.id)
         .single()
 
-      const payload = {
+      const payload: OnlineUser = {
         id: data.user.id,
         name: data.user.user_metadata?.name || 'Unknown',
         avatar: profile?.avatar_url || null,
@@ -47,20 +51,20 @@ export default function OnlineUsers() {
 
       channel
         .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState()
+          const state = channel!.presenceState()
 
           const list: OnlineUser[] = []
 
           for (const id in state) {
-            const presence = state[id][0]
+            const presence = state[id][0] as OnlineUser
             list.push(presence)
           }
 
           setUsers(list)
         })
-        .subscribe(async (status: string) => {
+        .subscribe(async (status: RealtimeChannelStatus) => {
           if (status === 'SUBSCRIBED') {
-            await channel.track(payload)
+            await channel!.track(payload)
           }
         })
     }
@@ -68,37 +72,36 @@ export default function OnlineUsers() {
     init()
 
     return () => {
-      if (channel) supabase.removeChannel(channel)
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
     }
-  }, [])
+  }, [supabase])
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow w-64">
-
       <h2 className="font-bold mb-3">
         Online Users ({users.length})
       </h2>
 
       <div className="space-y-2">
-
         {users.map(u => (
           <div
             key={u.id}
             className="flex items-center gap-2 text-sm"
           >
-
             {/* Avatar */}
             <img
               src={
                 u.avatar ||
                 'https://cdn.discordapp.com/embed/avatars/0.png'
               }
+              alt={u.name}
               className="w-8 h-8 rounded-full"
             />
 
             {/* Info */}
             <div className="flex flex-col leading-tight">
-
               <span className="font-medium">
                 {u.name}
               </span>
@@ -112,11 +115,9 @@ export default function OnlineUsers() {
               >
                 {u.isAdmin ? 'Admin' : 'User'}
               </span>
-
             </div>
           </div>
         ))}
-
       </div>
     </div>
   )
