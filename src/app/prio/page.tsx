@@ -14,12 +14,12 @@ type LootRow = {
   priority: string
   created_at: string
 
-  status?: string
-  reviewed_by?: string
+  status?: 'approved' | 'rejected' | null
+  reviewed_by?: string | null
 
-  user_note?: string
-  admin_note?: string
-  locked?: boolean
+  user_note?: string | null
+  admin_note?: string | null
+  locked?: boolean | null
 }
 
 const PRIORITIES = ['Low', 'Medium', 'High', 'HR']
@@ -66,45 +66,54 @@ export default function PrioPage() {
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('All')
 
-  /* LOAD */
-  useEffect(() => {
-    async function load() {
-      const { data: userData } = await supabase.auth.getUser()
+  /* -------------------------------- */
+  /* LOAD DATA */
+  /* -------------------------------- */
 
-      if (userData.user) {
-        const raw =
-          userData.user.user_metadata?.name || 'Admin'
+  async function loadData() {
+    setLoading(true)
 
-        setAdminName(raw.split('#')[0])
+    const { data: userData } = await supabase.auth.getUser()
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', userData.user.id)
-          .single()
+    if (userData.user) {
+      const raw =
+        userData.user.user_metadata?.name || 'Admin'
 
-        setIsAdmin(!!profile?.is_admin)
-      }
+      setAdminName(raw.split('#')[0])
 
-      const { data, error } = await supabase
-        .from('loot_requests')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userData.user.id)
+        .single()
 
-      if (error) {
-        setError(error.message)
-      } else {
-        setRows(data || [])
-        setFilteredRows(data || [])
-      }
-
-      setLoading(false)
+      setIsAdmin(Boolean(profile?.is_admin))
     }
 
-    load()
+    const { data, error } = await supabase
+      .from('loot_requests')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error(error)
+      setError(error.message)
+    } else {
+      setRows(data || [])
+      setFilteredRows(data || [])
+    }
+
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadData()
   }, [])
 
+  /* -------------------------------- */
   /* FILTERS */
+  /* -------------------------------- */
+
   useEffect(() => {
     let result = [...rows]
 
@@ -159,7 +168,10 @@ export default function PrioPage() {
     rows,
   ])
 
+  /* -------------------------------- */
   /* HELPERS */
+  /* -------------------------------- */
+
   function getPriorityColor(priority: string) {
     if (priority === 'HR') return 'text-purple-400 font-bold'
     if (priority === 'High') return 'text-red-400 font-semibold'
@@ -168,53 +180,81 @@ export default function PrioPage() {
     return 'text-gray-300'
   }
 
-  /* ADMIN ACTIONS */
+  /* -------------------------------- */
+  /* ADMIN ACTIONS (FIXED) */
+  /* -------------------------------- */
 
   async function updateRow(
     id: number,
     updates: Partial<LootRow>
   ) {
-    await supabase
+    const { error } = await supabase
       .from('loot_requests')
       .update(updates)
       .eq('id', id)
 
-    setRows(prev =>
-      prev.map(r =>
-        r.id === id ? { ...r, ...updates } : r
-      )
-    )
+    if (error) {
+      console.error('Update failed:', error)
+      alert('Update failed. Check console.')
+      return
+    }
+
+    await loadData()
   }
 
-  async function updateStatus(id: number, status: string) {
-    updateRow(id, {
-      status,
-      reviewed_by: adminName,
-    })
+  async function updateStatus(
+    id: number,
+    status: 'approved' | 'rejected'
+  ) {
+    const { error } = await supabase
+      .from('loot_requests')
+      .update({
+        status,
+        reviewed_by: adminName,
+      })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Status update failed:', error)
+      alert('Status update failed.')
+      return
+    }
+
+    await loadData()
   }
 
   async function deleteRequest(id: number) {
-    await supabase
+    const { error } = await supabase
       .from('loot_requests')
       .delete()
       .eq('id', id)
 
-    setRows(prev => prev.filter(r => r.id !== id))
+    if (error) {
+      console.error('Delete failed:', error)
+      alert('Delete failed.')
+      return
+    }
+
+    await loadData()
   }
 
   async function toggleLock(row: LootRow) {
-    updateRow(row.id, {
+    await updateRow(row.id, {
       locked: !row.locked,
     })
   }
 
+  /* -------------------------------- */
   /* DROPDOWNS */
+  /* -------------------------------- */
 
   const raids = ['All', ...new Set(rows.map(r => r.raid))]
   const classes = ['All', ...new Set(rows.map(r => r.class))]
   const priorities = ['All', ...PRIORITIES]
 
+  /* -------------------------------- */
   /* UI */
+  /* -------------------------------- */
 
   if (loading) {
     return (
