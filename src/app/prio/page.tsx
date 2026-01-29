@@ -9,6 +9,7 @@ type LootRow = {
   class: string
   raid: string
   item_name: string
+  slot: string
   priority: string
   created_at: string
 
@@ -19,7 +20,27 @@ type LootRow = {
   locked?: boolean
 }
 
-const PRIORITIES = ['Low', 'Medium', 'High']
+const PRIORITIES = ['Low', 'Medium', 'High', 'HR']
+
+const SLOTS = [
+  'All',
+  'Head',
+  'Neck',
+  'Shoulders',
+  'Back',
+  'Chest',
+  'Bracers',
+  'Gloves',
+  'Belt',
+  'Legs',
+  'Boots',
+  'Ring',
+  'Trinket',
+  'Two-Handed Weapon',
+  'Main Hand',
+  'Off Hand',
+  'Ranged',
+]
 
 export default function PrioPage() {
   const supabase = createClient()
@@ -37,6 +58,7 @@ export default function PrioPage() {
   const [raidFilter, setRaidFilter] = useState('All')
   const [classFilter, setClassFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
+  const [slotFilter, setSlotFilter] = useState('All')
 
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('All')
@@ -44,11 +66,9 @@ export default function PrioPage() {
   /* Load */
   useEffect(() => {
     async function load() {
-
       const { data: userData } = await supabase.auth.getUser()
 
       if (userData.user) {
-
         const raw =
           userData.user.user_metadata?.name || 'Admin'
 
@@ -85,22 +105,22 @@ export default function PrioPage() {
   useEffect(() => {
     let result = [...rows]
 
-    /* Raid */
     if (raidFilter !== 'All') {
       result = result.filter(r => r.raid === raidFilter)
     }
 
-    /* Class */
     if (classFilter !== 'All') {
       result = result.filter(r => r.class === classFilter)
     }
 
-    /* Priority */
     if (priorityFilter !== 'All') {
       result = result.filter(r => r.priority === priorityFilter)
     }
 
-    /* Search */
+    if (slotFilter !== 'All') {
+      result = result.filter(r => r.slot === slotFilter)
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase()
 
@@ -110,7 +130,6 @@ export default function PrioPage() {
       )
     }
 
-    /* Date */
     if (dateFilter !== 'All') {
       const now = new Date()
 
@@ -139,6 +158,7 @@ export default function PrioPage() {
     raidFilter,
     classFilter,
     priorityFilter,
+    slotFilter,
     search,
     dateFilter,
     rows,
@@ -146,6 +166,7 @@ export default function PrioPage() {
 
   /* Helpers */
   function getPriorityColor(priority: string) {
+    if (priority === 'HR') return 'text-purple-400 font-bold'
     if (priority === 'High') return 'text-red-400 font-semibold'
     if (priority === 'Medium') return 'text-yellow-400'
     if (priority === 'Low') return 'text-green-400'
@@ -158,7 +179,6 @@ export default function PrioPage() {
     id: number,
     updates: Partial<LootRow>
   ) {
-
     await supabase
       .from('loot_requests')
       .update(updates)
@@ -179,7 +199,6 @@ export default function PrioPage() {
   }
 
   async function deleteRequest(id: number) {
-
     await supabase
       .from('loot_requests')
       .delete()
@@ -197,7 +216,7 @@ export default function PrioPage() {
   /* Dropdowns */
   const raids = ['All', ...new Set(rows.map(r => r.raid))]
   const classes = ['All', ...new Set(rows.map(r => r.class))]
-  const priorities = ['All', 'Low', 'Medium', 'High']
+  const priorities = ['All', ...PRIORITIES]
 
   /* UI */
 
@@ -261,6 +280,17 @@ export default function PrioPage() {
             ))}
           </select>
 
+          {/* Slot */}
+          <select
+            value={slotFilter}
+            onChange={(e) => setSlotFilter(e.target.value)}
+            className="bg-gray-800 px-3 py-2 rounded text-sm"
+          >
+            {SLOTS.map(s => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+
           {/* Priority */}
           <select
             value={priorityFilter}
@@ -310,12 +340,11 @@ export default function PrioPage() {
             </div>
 
             <div className="text-sm text-gray-300">
-              {row.class} • {row.raid}
+              {row.class} • {row.raid} • {row.slot}
             </div>
 
             {/* Item */}
             <div className="mt-2 text-sm">
-
               Item:{' '}
 
               {!isAdmin || row.locked ? (
@@ -333,7 +362,6 @@ export default function PrioPage() {
                   className="bg-gray-700 px-2 py-1 rounded text-sm w-full"
                 />
               )}
-
             </div>
 
             {/* Priority */}
