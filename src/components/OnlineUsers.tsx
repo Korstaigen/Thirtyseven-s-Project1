@@ -11,6 +11,10 @@ type OnlineUser = {
   isAdmin: boolean
 }
 
+type PresencePayload = OnlineUser & {
+  presence_ref: string
+}
+
 export default function OnlineUsers() {
   const supabase = createClient()
   const [users, setUsers] = useState<OnlineUser[]>([])
@@ -49,16 +53,20 @@ export default function OnlineUsers() {
         const list: OnlineUser[] = []
 
         for (const id in state) {
-          list.push(state[id][0] as OnlineUser)
+          const presence = state[id][0] as PresencePayload
+
+          list.push({
+            id: presence.id,
+            name: presence.name,
+            avatar: presence.avatar,
+            isAdmin: presence.isAdmin,
+          })
         }
 
         setUsers(list)
       })
 
-      // ✅ NO CALLBACK = NO TYPE ERROR
       channel.subscribe()
-
-      // ✅ Track immediately after subscribing
       await channel.track(payload)
     }
 
