@@ -181,7 +181,7 @@ export default function PrioPage() {
   }
 
   /* -------------------------------- */
-  /* ADMIN ACTIONS (FIXED) */
+  /* ADMIN ACTIONS */
   /* -------------------------------- */
 
   async function updateRow(
@@ -240,7 +240,7 @@ export default function PrioPage() {
 
   async function toggleLock(row: LootRow) {
     await updateRow(row.id, {
-      locked: !Boolean(row.locked)
+      locked: !Boolean(row.locked), // <-- ensure boolean
     })
   }
 
@@ -458,7 +458,7 @@ export default function PrioPage() {
 
                 <button
                   onClick={() => updateStatus(row.id, 'approved')}
-                  disabled={!!row.locked}
+                  disabled={!!row.locked} // <-- fixed type
                   className="bg-green-600 px-2 py-1 rounded text-xs"
                 >
                   Approve
@@ -466,7 +466,7 @@ export default function PrioPage() {
 
                 <button
                   onClick={() => updateStatus(row.id, 'rejected')}
-                  disabled={row.locked}
+                  disabled={!!row.locked} // <-- fixed type
                   className="bg-yellow-600 px-2 py-1 rounded text-xs"
                 >
                   Reject
