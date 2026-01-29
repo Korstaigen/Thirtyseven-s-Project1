@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/supabase/client'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import type {
+  RealtimeChannel,
+  RealtimeChannelState,
+} from '@supabase/supabase-js'
 
 type OnlineUser = {
   id: string
@@ -11,14 +14,9 @@ type OnlineUser = {
   isAdmin: boolean
 }
 
-type ChannelStatus =
-  | 'SUBSCRIBED'
-  | 'TIMED_OUT'
-  | 'CLOSED'
-  | 'CHANNEL_ERROR'
-
 export default function OnlineUsers() {
   const supabase = createClient()
+
   const [users, setUsers] = useState<OnlineUser[]>([])
 
   useEffect(() => {
@@ -26,9 +24,10 @@ export default function OnlineUsers() {
 
     async function init() {
       const { data } = await supabase.auth.getUser()
+
       if (!data.user) return
 
-      /* Get profile */
+      /* Load profile */
       const { data: profile } = await supabase
         .from('profiles')
         .select('is_admin, avatar_url')
@@ -50,40 +49,58 @@ export default function OnlineUsers() {
         },
       })
 
+      /* Presence Sync */
       channel.on('presence', { event: 'sync' }, () => {
-        const state = channel!.presenceState()
+        if (!channel) return
+
+        const state = channel.presenceState()
         const list: OnlineUser[] = []
 
         for (const id in state) {
-          list.push(state[id][0] as OnlineUser)
+          const presences = state[id]
+
+          if (presences?.length) {
+            list.push(presences[0] as OnlineUser)
+          }
         }
 
         setUsers(list)
       })
 
-      channel.subscribe((status: ChannelStatus) => {
-        if (status === 'SUBSCRIBED') {
-          channel!.track(payload)
+      /* Subscribe */
+      channel.subscribe(
+        async (status: RealtimeChannelState) => {
+          if (status === 'SUBSCRIBED' && channel) {
+            await channel.track(payload)
+          }
         }
-      })
+      )
     }
 
     init()
 
     return () => {
-      if (channel) supabase.removeChannel(channel)
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
     }
-  }, [supabase])
+  }, [])
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow w-64">
+
       <h2 className="font-bold mb-3">
         Online Users ({users.length})
       </h2>
 
       <div className="space-y-2">
+
         {users.map(u => (
-          <div key={u.id} className="flex items-center gap-2 text-sm">
+          <div
+            key={u.id}
+            className="flex items-center gap-2 text-sm"
+          >
+
             <img
               src={
                 u.avatar ||
@@ -94,7 +111,11 @@ export default function OnlineUsers() {
             />
 
             <div className="flex flex-col leading-tight">
-              <span className="font-medium">{u.name}</span>
+
+              <span className="font-medium">
+                {u.name}
+              </span>
+
               <span
                 className={`text-xs ${
                   u.isAdmin
@@ -104,10 +125,14 @@ export default function OnlineUsers() {
               >
                 {u.isAdmin ? 'Admin' : 'User'}
               </span>
+
             </div>
+
           </div>
         ))}
+
       </div>
+
     </div>
   )
 }
