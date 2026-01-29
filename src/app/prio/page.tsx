@@ -355,5 +355,40 @@ export default function PrioPage() {
         {filteredRows.map((row) => (
           <div
             key={row.id}
-            className={`bg-gray-800 p
-::contentReference[oaicite:0]{index=0}
+            className={`bg-gray-800 p-4 rounded shadow ${
+              row.locked ? 'opacity-70' : ''
+            }`}
+          >
+
+            <div className="font-semibold">
+              {row.character_name}
+            </div>
+
+            <div className="text-sm text-gray-300">
+              {row.class} • {row.raid} • {row.slot}
+            </div>
+
+            {/* Item */}
+            <div className="mt-2 text-sm">
+              Item:{' '}
+              <span className="text-blue-400">
+                {row.item_name}
+              </span>
+            </div>
+
+            {/* Priority */}
+            <div className="text-sm mt-1">
+              Priority:{' '}
+              <span className={getPriorityColor(row.priority)}>
+                {row.priority}
+              </span>
+            </div>
+
+          </div>
+        ))}
+
+      </div>
+
+    </div>
+  )
+}
