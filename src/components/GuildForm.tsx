@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/supabase/client'
 
-type Priority = 'Low' | 'Medium' | 'High'
+type Priority = 'Low' | 'Medium' | 'High' | 'HR'
 
 type ItemEntry = {
   item: string
@@ -15,7 +15,7 @@ type RaidEntry = {
   items: ItemEntry[]
 }
 
-/* Updated Raid List */
+/* Raids */
 const RAIDS = [
   'Molten Core',
   'Blackwing Lair',
@@ -28,11 +28,16 @@ const RAIDS = [
 export default function GuildForm() {
   const supabase = createClient()
 
-  /* User info */
+  /* User */
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  /* HR list */
+  const [hardReserves, setHardReserves] = useState<string[]>([])
+
+  /* Form */
   const [characterName, setCharacterName] = useState('')
   const [playerClass, setPlayerClass] = useState('')
 
-  /* UI state */
   const [multiRaid, setMultiRaid] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -43,7 +48,42 @@ export default function GuildForm() {
     },
   ])
 
-  /* Toggle multi-raid */
+  /* -------------------------------- */
+  /* LOAD ADMIN + HR DATA */
+  /* -------------------------------- */
+  useEffect(() => {
+    async function load() {
+      const { data: userData } = await supabase.auth.getUser()
+
+      if (userData.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', userData.user.id)
+          .single()
+
+        setIsAdmin(!!profile?.is_admin)
+      }
+
+      /* Load hard reserves */
+      const { data: hrData } = await supabase
+        .from('hard_reserves')
+        .select('item_name')
+
+      if (hrData) {
+        setHardReserves(
+          hrData.map(r => r.item_name.toLowerCase())
+        )
+      }
+    }
+
+    load()
+  }, [])
+
+  /* -------------------------------- */
+  /* RAID CONTROLS */
+  /* -------------------------------- */
+
   function toggleMultiRaid() {
     if (!multiRaid) {
       setRaids([
@@ -57,7 +97,6 @@ export default function GuildForm() {
     setMultiRaid(!multiRaid)
   }
 
-  /* Raid controls */
   function addRaid() {
     if (raids.length >= 8) return
 
@@ -83,10 +122,18 @@ export default function GuildForm() {
     setRaids(copy)
   }
 
-  /* Item controls */
+  /* -------------------------------- */
+  /* ITEM CONTROLS */
+  /* -------------------------------- */
+
   function addItem(raidIndex: number) {
     const copy = [...raids]
-    copy[raidIndex].items.push({ item: '', priority: 'Medium' })
+
+    copy[raidIndex].items.push({
+      item: '',
+      priority: 'Medium',
+    })
+
     setRaids(copy)
   }
 
@@ -116,7 +163,10 @@ export default function GuildForm() {
     setRaids(copy)
   }
 
+  /* -------------------------------- */
   /* SUBMIT */
+  /* -------------------------------- */
+
   async function submitRequests() {
     setLoading(true)
 
@@ -138,10 +188,31 @@ export default function GuildForm() {
 
     const rows = []
 
+    /* Check HR conflicts */
     for (const raidBlock of raids) {
       for (const item of raidBlock.items) {
-        const trimmedItem = item.item.trim()
-        if (!trimmedItem) continue
+        const name = item.item.trim()
+
+        if (!name) continue
+
+        /* BLOCK HARD RESERVE */
+        if (
+          hardReserves.includes(name.toLowerCase())
+        ) {
+          alert(
+            `"${name}" is Hard Reserved and cannot be prioritized.`
+          )
+
+          setLoading(false)
+          return
+        }
+
+        /* BLOCK HR FOR NON ADMINS */
+        if (!isAdmin && item.priority === 'HR') {
+          alert('Only admins may use HR priority.')
+          setLoading(false)
+          return
+        }
 
         rows.push({
           user_id: user.id,
@@ -151,7 +222,7 @@ export default function GuildForm() {
           class: playerClass,
 
           raid: raidBlock.raid,
-          item_name: trimmedItem,
+          item_name: name,
           priority: item.priority,
         })
       }
@@ -177,7 +248,10 @@ export default function GuildForm() {
     setLoading(false)
   }
 
+  /* -------------------------------- */
   /* UI */
+  /* -------------------------------- */
+
   return (
     <div className="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow">
 
@@ -189,7 +263,10 @@ export default function GuildForm() {
 
         {/* Character */}
         <div>
-          <label className="block text-sm mb-1">Character Name</label>
+          <label className="block text-sm mb-1">
+            Character Name
+          </label>
+
           <input
             value={characterName}
             onChange={(e) => setCharacterName(e.target.value)}
@@ -199,13 +276,17 @@ export default function GuildForm() {
 
         {/* Class */}
         <div>
-          <label className="block text-sm mb-1">Class</label>
+          <label className="block text-sm mb-1">
+            Class
+          </label>
+
           <select
             value={playerClass}
             onChange={(e) => setPlayerClass(e.target.value)}
             className="w-full px-3 py-2 rounded bg-gray-700 text-white"
           >
             <option value="">Select class</option>
+
             <option>Warrior</option>
             <option>Mage</option>
             <option>Priest</option>
@@ -225,7 +306,10 @@ export default function GuildForm() {
             checked={multiRaid}
             onChange={toggleMultiRaid}
           />
-          <label>Enable Multi-Raid Mode (up to 8 raids)</label>
+
+          <label>
+            Enable Multi-Raid Mode
+          </label>
         </div>
 
         {/* Raids */}
@@ -237,8 +321,9 @@ export default function GuildForm() {
               className="border border-gray-700 rounded-lg p-4"
             >
 
-              {/* Raid header */}
+              {/* Header */}
               <div className="flex justify-between mb-3">
+
                 <div className="flex gap-3 items-center">
 
                   <span className="font-semibold">
@@ -250,9 +335,9 @@ export default function GuildForm() {
                     onChange={(e) =>
                       updateRaid(raidIndex, e.target.value)
                     }
-                    className="px-3 py-2 rounded bg-gray-700 text-white"
+                    className="px-3 py-2 rounded bg-gray-700"
                   >
-                    {RAIDS.map((r) => (
+                    {RAIDS.map(r => (
                       <option key={r}>{r}</option>
                     ))}
                   </select>
@@ -282,7 +367,7 @@ export default function GuildForm() {
                     {/* Item */}
                     <input
                       type="text"
-                      placeholder="Item name (e.g. Perdition's Blade)"
+                      placeholder="Item name"
                       value={row.item}
                       onChange={(e) =>
                         updateItem(
@@ -291,7 +376,7 @@ export default function GuildForm() {
                           e.target.value
                         )
                       }
-                      className="col-span-7 px-3 py-2 rounded bg-gray-700 text-white"
+                      className="col-span-7 bg-gray-700 px-3 py-2 rounded"
                     />
 
                     {/* Priority */}
@@ -304,11 +389,13 @@ export default function GuildForm() {
                           e.target.value as Priority
                         )
                       }
-                      className="col-span-3 px-3 py-2 rounded bg-gray-700 text-white"
+                      className="col-span-3 bg-gray-700 px-2 py-2 rounded"
                     >
                       <option>Low</option>
                       <option>Medium</option>
                       <option>High</option>
+
+                      {isAdmin && <option>HR</option>}
                     </select>
 
                     {/* Remove */}
@@ -338,23 +425,12 @@ export default function GuildForm() {
           ))}
         </div>
 
-        {/* Add Raid */}
-        {multiRaid && raids.length < 8 && (
-          <button
-            type="button"
-            onClick={addRaid}
-            className="w-full bg-gray-700 py-2 rounded"
-          >
-            + Add Raid
-          </button>
-        )}
-
         {/* Submit */}
         <button
           type="button"
           disabled={loading}
           onClick={submitRequests}
-          className="w-full bg-blue-600 py-3 rounded font-semibold text-lg"
+          className="w-full bg-blue-600 py-3 rounded font-semibold"
         >
           {loading ? 'Submitting...' : 'Submit Priorities'}
         </button>
