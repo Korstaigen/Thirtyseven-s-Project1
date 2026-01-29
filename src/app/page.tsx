@@ -21,7 +21,7 @@ export default function Home() {
       </div>
 
       {/* Hard Reserves (Right Side, Centered with Form) */}
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 w-[320px] max-h-[70vh] overflow-y-auto">
+      <div className="absolute right-6 top-1/3 -translate-y-1/2 z-30 w-[320px] max-h-[70vh] overflow-y-auto">
         <HardReserves />
       </div>
 
