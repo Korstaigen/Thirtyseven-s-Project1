@@ -15,7 +15,15 @@ type RaidEntry = {
   items: ItemEntry[]
 }
 
-const RAIDS = ['MoltenCore', 'BWL', 'AQ40', 'Naxxramas']
+/* Updated Raid List */
+const RAIDS = [
+  'Molten Core',
+  'Blackwing Lair',
+  'AQ40',
+  'Naxxramas',
+  'Emerald Sanctum',
+  'Karazhan 40',
+]
 
 export default function GuildForm() {
   const supabase = createClient()
@@ -30,7 +38,7 @@ export default function GuildForm() {
 
   const [raids, setRaids] = useState<RaidEntry[]>([
     {
-      raid: 'MoltenCore',
+      raid: 'Molten Core',
       items: [{ item: '', priority: 'Medium' }],
     },
   ])
@@ -40,7 +48,7 @@ export default function GuildForm() {
     if (!multiRaid) {
       setRaids([
         {
-          raid: 'MoltenCore',
+          raid: 'Molten Core',
           items: [{ item: '', priority: 'Medium' }],
         },
       ])
@@ -56,7 +64,7 @@ export default function GuildForm() {
     setRaids([
       ...raids,
       {
-        raid: 'MoltenCore',
+        raid: 'Molten Core',
         items: [{ item: '', priority: 'Medium' }],
       },
     ])
@@ -138,8 +146,10 @@ export default function GuildForm() {
         rows.push({
           user_id: user.id,
           discord_name: user.user_metadata?.name ?? 'Unknown',
+
           character_name: characterName,
           class: playerClass,
+
           raid: raidBlock.raid,
           item_name: trimmedItem,
           priority: item.priority,
@@ -230,6 +240,7 @@ export default function GuildForm() {
               {/* Raid header */}
               <div className="flex justify-between mb-3">
                 <div className="flex gap-3 items-center">
+
                   <span className="font-semibold">
                     Raid {raidIndex + 1}
                   </span>
@@ -245,6 +256,7 @@ export default function GuildForm() {
                       <option key={r}>{r}</option>
                     ))}
                   </select>
+
                 </div>
 
                 {multiRaid && raids.length > 1 && (
@@ -260,13 +272,14 @@ export default function GuildForm() {
 
               {/* Items */}
               <div className="space-y-2">
+
                 {raidBlock.items.map((row, itemIndex) => (
                   <div
                     key={itemIndex}
                     className="grid grid-cols-12 gap-2"
                   >
 
-                    {/* Item name (FREE TEXT) */}
+                    {/* Item */}
                     <input
                       type="text"
                       placeholder="Item name (e.g. Perdition's Blade)"
@@ -308,6 +321,7 @@ export default function GuildForm() {
                     >
                       ✕
                     </button>
+
                   </div>
                 ))}
 
@@ -318,6 +332,7 @@ export default function GuildForm() {
                 >
                   + Add Item
                 </button>
+
               </div>
             </div>
           ))}
