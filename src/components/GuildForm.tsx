@@ -498,7 +498,7 @@ export default function GuildForm() {
                           e.target.value
                         )
                       }
-                      placeholder="Why do you want this item?"
+                      placeholder="User Comment (optional)"
                       className="mt-1 w-full bg-gray-700 px-2 py-1 rounded text-sm"
                       rows={2}
                     />
