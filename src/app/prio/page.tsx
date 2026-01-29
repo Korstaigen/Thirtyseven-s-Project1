@@ -57,15 +57,6 @@ export default function PrioPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  /* Filters */
-  const [raidFilter, setRaidFilter] = useState('All')
-  const [classFilter, setClassFilter] = useState('All')
-  const [priorityFilter, setPriorityFilter] = useState('All')
-  const [slotFilter, setSlotFilter] = useState('All')
-
-  const [search, setSearch] = useState('')
-  const [dateFilter, setDateFilter] = useState('All')
-
   /* -------------------------------- */
   /* LOAD DATA */
   /* -------------------------------- */
@@ -117,56 +108,8 @@ export default function PrioPage() {
   useEffect(() => {
     let result = [...rows]
 
-    if (raidFilter !== 'All')
-      result = result.filter(r => r.raid === raidFilter)
-
-    if (classFilter !== 'All')
-      result = result.filter(r => r.class === classFilter)
-
-    if (priorityFilter !== 'All')
-      result = result.filter(r => r.priority === priorityFilter)
-
-    if (slotFilter !== 'All')
-      result = result.filter(r => r.slot === slotFilter)
-
-    if (search.trim()) {
-      const q = search.toLowerCase()
-
-      result = result.filter(r =>
-        r.character_name.toLowerCase().includes(q) ||
-        r.item_name.toLowerCase().includes(q)
-      )
-    }
-
-    if (dateFilter !== 'All') {
-      const now = new Date()
-
-      result = result.filter(r => {
-        const created = new Date(r.created_at)
-
-        if (dateFilter === 'Today')
-          return created.toDateString() === now.toDateString()
-
-        if (dateFilter === '7days')
-          return now.getTime() - created.getTime() <= 7 * 86400000
-
-        if (dateFilter === '30days')
-          return now.getTime() - created.getTime() <= 30 * 86400000
-
-        return true
-      })
-    }
-
     setFilteredRows(result)
-  }, [
-    raidFilter,
-    classFilter,
-    priorityFilter,
-    slotFilter,
-    search,
-    dateFilter,
-    rows,
-  ])
+  }, [rows])
 
   /* -------------------------------- */
   /* HELPERS */
@@ -293,6 +236,7 @@ export default function PrioPage() {
             }`}
           >
 
+            {/* Basic Info */}
             <div className="font-semibold">
               {row.character_name}
             </div>
@@ -301,9 +245,25 @@ export default function PrioPage() {
               {row.class} • {row.raid} • {row.slot}
             </div>
 
-            {/* STATUS DISPLAY */}
+            {/* Item */}
+            <div className="mt-2 text-sm">
+              Item:{' '}
+              <span className="text-blue-400">
+                {row.item_name}
+              </span>
+            </div>
+
+            {/* Priority */}
+            <div className="mt-1 text-sm">
+              Priority:{' '}
+              <span className={getPriorityColor(row.priority)}>
+                {row.priority}
+              </span>
+            </div>
+
+            {/* STATUS */}
             {row.status && (
-              <div className="text-xs text-gray-400 mt-1">
+              <div className="text-xs text-gray-400 mt-2">
 
                 {row.status === 'approved' && (
                   <>Approved by {row.reviewed_by}</>
@@ -316,9 +276,50 @@ export default function PrioPage() {
               </div>
             )}
 
-            {/* Admin Controls */}
+            {/* NOTES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+
+              {/* User Note */}
+              <div>
+                <div className="text-xs text-gray-400 mb-1">
+                  User Comment
+                </div>
+
+                <div className="bg-gray-700 px-2 py-1 rounded text-sm min-h-[40px]">
+                  {row.user_note || '—'}
+                </div>
+              </div>
+
+              {/* Admin Note */}
+              <div>
+                <div className="text-xs text-gray-400 mb-1">
+                  Admin Note
+                </div>
+
+                {!isAdmin || row.locked ? (
+                  <div className="bg-gray-700 px-2 py-1 rounded text-sm min-h-[40px]">
+                    {row.admin_note || '—'}
+                  </div>
+                ) : (
+                  <textarea
+                    defaultValue={row.admin_note || ''}
+                    onBlur={e =>
+                      updateRow(row.id, {
+                        admin_note: e.target.value,
+                      })
+                    }
+                    className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
+                    rows={2}
+                  />
+                )}
+
+              </div>
+
+            </div>
+
+            {/* ADMIN CONTROLS */}
             {isAdmin && (
-              <div className="flex gap-2 mt-3 flex-wrap">
+              <div className="flex gap-2 mt-4 flex-wrap">
 
                 <button
                   type="button"
