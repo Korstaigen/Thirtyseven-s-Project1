@@ -38,6 +38,9 @@ export default function PrioPage() {
   const [classFilter, setClassFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
 
+  const [search, setSearch] = useState('')
+  const [dateFilter, setDateFilter] = useState('All')
+
   /* Load */
   useEffect(() => {
     async function load() {
@@ -78,25 +81,68 @@ export default function PrioPage() {
     load()
   }, [])
 
-  /* Filters */
+  /* Apply Filters */
   useEffect(() => {
     let result = [...rows]
 
+    /* Raid */
     if (raidFilter !== 'All') {
       result = result.filter(r => r.raid === raidFilter)
     }
 
+    /* Class */
     if (classFilter !== 'All') {
       result = result.filter(r => r.class === classFilter)
     }
 
+    /* Priority */
     if (priorityFilter !== 'All') {
       result = result.filter(r => r.priority === priorityFilter)
     }
 
+    /* Search */
+    if (search.trim()) {
+      const q = search.toLowerCase()
+
+      result = result.filter(r =>
+        r.character_name.toLowerCase().includes(q) ||
+        r.item_name.toLowerCase().includes(q)
+      )
+    }
+
+    /* Date */
+    if (dateFilter !== 'All') {
+      const now = new Date()
+
+      result = result.filter(r => {
+        const created = new Date(r.created_at)
+
+        if (dateFilter === 'Today') {
+          return created.toDateString() === now.toDateString()
+        }
+
+        if (dateFilter === '7days') {
+          return now.getTime() - created.getTime() <= 7 * 86400000
+        }
+
+        if (dateFilter === '30days') {
+          return now.getTime() - created.getTime() <= 30 * 86400000
+        }
+
+        return true
+      })
+    }
+
     setFilteredRows(result)
 
-  }, [raidFilter, classFilter, priorityFilter, rows])
+  }, [
+    raidFilter,
+    classFilter,
+    priorityFilter,
+    search,
+    dateFilter,
+    rows,
+  ])
 
   /* Helpers */
   function getPriorityColor(priority: string) {
@@ -175,15 +221,25 @@ export default function PrioPage() {
     <div className="min-h-screen bg-gray-900 text-white p-6">
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:justify-between gap-4 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
 
         <h1 className="text-3xl font-bold">
           Raid Priority Overview
         </h1>
 
         {/* Filters */}
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-3 flex-wrap items-center">
 
+          {/* Search */}
+          <input
+            type="text"
+            placeholder="Search player or item..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-gray-800 px-3 py-2 rounded text-sm w-56"
+          />
+
+          {/* Raid */}
           <select
             value={raidFilter}
             onChange={(e) => setRaidFilter(e.target.value)}
@@ -194,6 +250,7 @@ export default function PrioPage() {
             ))}
           </select>
 
+          {/* Class */}
           <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
@@ -204,6 +261,7 @@ export default function PrioPage() {
             ))}
           </select>
 
+          {/* Priority */}
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
@@ -214,12 +272,30 @@ export default function PrioPage() {
             ))}
           </select>
 
+          {/* Date */}
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="bg-gray-800 px-3 py-2 rounded text-sm"
+          >
+            <option value="All">All Time</option>
+            <option value="Today">Today</option>
+            <option value="7days">Last 7 Days</option>
+            <option value="30days">Last 30 Days</option>
+          </select>
+
         </div>
 
       </div>
 
       {/* Results */}
       <div className="space-y-4">
+
+        {filteredRows.length === 0 && (
+          <p className="text-gray-400">
+            No results found.
+          </p>
+        )}
 
         {filteredRows.map((row) => (
           <div
@@ -229,7 +305,6 @@ export default function PrioPage() {
             }`}
           >
 
-            {/* Header */}
             <div className="font-semibold">
               {row.character_name}
             </div>
@@ -256,27 +331,6 @@ export default function PrioPage() {
                     })
                   }
                   className="bg-gray-700 px-2 py-1 rounded text-sm w-full"
-                />
-              )}
-
-            </div>
-
-            {/* Raid */}
-            <div className="text-sm mt-1">
-
-              Raid:{' '}
-
-              {!isAdmin || row.locked ? (
-                row.raid
-              ) : (
-                <input
-                  defaultValue={row.raid}
-                  onBlur={(e) =>
-                    updateRow(row.id, {
-                      raid: e.target.value,
-                    })
-                  }
-                  className="bg-gray-700 px-2 py-1 rounded text-sm"
                 />
               )}
 
