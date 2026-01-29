@@ -7,6 +7,7 @@ type Priority = 'Low' | 'Medium' | 'High' | 'HR'
 
 type ItemEntry = {
   item: string
+  slot: string
   priority: Priority
 }
 
@@ -23,6 +24,26 @@ const RAIDS = [
   'Naxxramas',
   'Emerald Sanctum',
   'Karazhan 40',
+]
+
+/* Slots */
+const SLOTS = [
+  'Head',
+  'Neck',
+  'Shoulders',
+  'Back',
+  'Chest',
+  'Bracers',
+  'Gloves',
+  'Belt',
+  'Legs',
+  'Boots',
+  'Ring',
+  'Trinket',
+  'Two-Handed Weapon',
+  'Main Hand',
+  'Off Hand',
+  'Ranged',
 ]
 
 export default function GuildForm() {
@@ -44,7 +65,7 @@ export default function GuildForm() {
   const [raids, setRaids] = useState<RaidEntry[]>([
     {
       raid: 'Molten Core',
-      items: [{ item: '', priority: 'Medium' }],
+      items: [{ item: '', slot: '', priority: 'Medium' }],
     },
   ])
 
@@ -89,7 +110,7 @@ export default function GuildForm() {
       setRaids([
         {
           raid: 'Molten Core',
-          items: [{ item: '', priority: 'Medium' }],
+          items: [{ item: '', slot: '', priority: 'Medium' }],
         },
       ])
     }
@@ -104,7 +125,7 @@ export default function GuildForm() {
       ...raids,
       {
         raid: 'Molten Core',
-        items: [{ item: '', priority: 'Medium' }],
+        items: [{ item: '', slot: '', priority: 'Medium' }],
       },
     ])
   }
@@ -118,7 +139,9 @@ export default function GuildForm() {
   function updateRaid(index: number, value: string) {
     const copy = [...raids]
     copy[index].raid = value
-    copy[index].items = [{ item: '', priority: 'Medium' }]
+    copy[index].items = [
+      { item: '', slot: '', priority: 'Medium' },
+    ]
     setRaids(copy)
   }
 
@@ -131,6 +154,7 @@ export default function GuildForm() {
 
     copy[raidIndex].items.push({
       item: '',
+      slot: '',
       priority: 'Medium',
     })
 
@@ -150,6 +174,16 @@ export default function GuildForm() {
   ) {
     const copy = [...raids]
     copy[raidIndex].items[itemIndex].item = value
+    setRaids(copy)
+  }
+
+  function updateSlot(
+    raidIndex: number,
+    itemIndex: number,
+    value: string
+  ) {
+    const copy = [...raids]
+    copy[raidIndex].items[itemIndex].slot = value
     setRaids(copy)
   }
 
@@ -188,21 +222,17 @@ export default function GuildForm() {
 
     const rows = []
 
-    /* Check HR conflicts */
     for (const raidBlock of raids) {
       for (const item of raidBlock.items) {
         const name = item.item.trim()
 
-        if (!name) continue
+        if (!name || !item.slot) continue
 
         /* BLOCK HARD RESERVE */
-        if (
-          hardReserves.includes(name.toLowerCase())
-        ) {
+        if (hardReserves.includes(name.toLowerCase())) {
           alert(
             `"${name}" is Hard Reserved and cannot be prioritized.`
           )
-
           setLoading(false)
           return
         }
@@ -223,13 +253,14 @@ export default function GuildForm() {
 
           raid: raidBlock.raid,
           item_name: name,
+          slot: item.slot,
           priority: item.priority,
         })
       }
     }
 
     if (rows.length === 0) {
-      alert('No items entered')
+      alert('No valid items entered')
       setLoading(false)
       return
     }
@@ -376,8 +407,27 @@ export default function GuildForm() {
                           e.target.value
                         )
                       }
-                      className="col-span-7 bg-gray-700 px-3 py-2 rounded"
+                      className="col-span-5 bg-gray-700 px-3 py-2 rounded"
                     />
+
+                    {/* Slot */}
+                    <select
+                      value={row.slot}
+                      onChange={(e) =>
+                        updateSlot(
+                          raidIndex,
+                          itemIndex,
+                          e.target.value
+                        )
+                      }
+                      className="col-span-3 bg-gray-700 px-2 py-2 rounded"
+                    >
+                      <option value="">Slot</option>
+
+                      {SLOTS.map(s => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
 
                     {/* Priority */}
                     <select
@@ -389,7 +439,7 @@ export default function GuildForm() {
                           e.target.value as Priority
                         )
                       }
-                      className="col-span-3 bg-gray-700 px-2 py-2 rounded"
+                      className="col-span-2 bg-gray-700 px-2 py-2 rounded"
                     >
                       <option>Low</option>
                       <option>Medium</option>
