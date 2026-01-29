@@ -13,15 +13,35 @@ export default function HardReserves() {
   const supabase = createClient()
 
   const [rows, setRows] = useState<HR[]>([])
+  const [filteredRows, setFilteredRows] = useState<HR[]>([])
+
   const [isAdmin, setIsAdmin] = useState(false)
 
   const [item, setItem] = useState('')
   const [note, setNote] = useState('')
 
+  const [search, setSearch] = useState('')
+
   /* Load */
   useEffect(() => {
     load()
   }, [])
+
+  /* Filter */
+  useEffect(() => {
+    let result = [...rows]
+
+    if (search.trim()) {
+      const q = search.toLowerCase()
+
+      result = result.filter(r =>
+        r.item_name.toLowerCase().includes(q) ||
+        (r.note || '').toLowerCase().includes(q)
+      )
+    }
+
+    setFilteredRows(result)
+  }, [search, rows])
 
   async function load() {
 
@@ -45,6 +65,7 @@ export default function HardReserves() {
       .order('created_at', { ascending: false })
 
     setRows(data || [])
+    setFilteredRows(data || [])
   }
 
   /* Add */
@@ -101,10 +122,25 @@ export default function HardReserves() {
         Hard Reserves
       </h2>
 
-      {/* List */}
-      <div className="space-y-3 mb-4">
+      {/* Search */}
+      <input
+        type="text"
+        placeholder="Search hard reserves..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="bg-gray-700 px-2 py-1 rounded w-full text-sm mb-3"
+      />
 
-        {rows.map(r => (
+      {/* List */}
+      <div className="space-y-3 mb-4 max-h-[45vh] overflow-y-auto">
+
+        {filteredRows.length === 0 && (
+          <div className="text-gray-400 text-sm text-center">
+            No matches
+          </div>
+        )}
+
+        {filteredRows.map(r => (
           <div
             key={r.id}
             className="border border-gray-700 rounded p-2"
@@ -145,7 +181,7 @@ export default function HardReserves() {
               />
             ) : (
               <div className="text-xs text-gray-400 mt-1">
-                {r.note}
+                {r.note || '—'}
               </div>
             )}
 
