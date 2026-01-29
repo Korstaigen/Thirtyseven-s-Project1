@@ -15,36 +15,9 @@ type RaidEntry = {
   items: ItemEntry[]
 }
 
-/* Mock DB (replace later) */
-const RAID_ITEMS: Record<string, string[]> = {
-  MoltenCore: [
-    'Perdition’s Blade',
-    'Onslaught Girdle',
-    'Cenarion Boots',
-  ],
-
-  BWL: [
-    'Ashkandi',
-    'Neltharion’s Tear',
-    'Rejuvenating Gem',
-  ],
-
-  AQ40: [
-    'Dark Edge of Insanity',
-    'Ring of the Fallen God',
-  ],
-
-  Naxxramas: [
-    'Corrupted Ashbringer',
-    'Might of Menethil',
-    'Atiesh',
-  ],
-}
-
 const RAIDS = ['MoltenCore', 'BWL', 'AQ40', 'Naxxramas']
 
 export default function GuildForm() {
-  /* Supabase */
   const supabase = createClient()
 
   /* User info */
@@ -76,7 +49,7 @@ export default function GuildForm() {
     setMultiRaid(!multiRaid)
   }
 
-  /* Add raid */
+  /* Raid controls */
   function addRaid() {
     if (raids.length >= 8) return
 
@@ -102,14 +75,10 @@ export default function GuildForm() {
     setRaids(copy)
   }
 
+  /* Item controls */
   function addItem(raidIndex: number) {
     const copy = [...raids]
-
-    copy[raidIndex].items.push({
-      item: '',
-      priority: 'Medium',
-    })
-
+    copy[raidIndex].items.push({ item: '', priority: 'Medium' })
     setRaids(copy)
   }
 
@@ -163,24 +132,23 @@ export default function GuildForm() {
 
     for (const raidBlock of raids) {
       for (const item of raidBlock.items) {
-        if (!item.item) continue
+        const trimmedItem = item.item.trim()
+        if (!trimmedItem) continue
 
         rows.push({
           user_id: user.id,
           discord_name: user.user_metadata?.name ?? 'Unknown',
-
           character_name: characterName,
           class: playerClass,
-
           raid: raidBlock.raid,
-          item_name: item.item,
+          item_name: trimmedItem,
           priority: item.priority,
         })
       }
     }
 
     if (rows.length === 0) {
-      alert('No items selected')
+      alert('No items entered')
       setLoading(false)
       return
     }
@@ -211,9 +179,7 @@ export default function GuildForm() {
 
         {/* Character */}
         <div>
-          <label className="block text-sm mb-1">
-            Character Name
-          </label>
+          <label className="block text-sm mb-1">Character Name</label>
           <input
             value={characterName}
             onChange={(e) => setCharacterName(e.target.value)}
@@ -223,17 +189,13 @@ export default function GuildForm() {
 
         {/* Class */}
         <div>
-          <label className="block text-sm mb-1">
-            Class
-          </label>
-
+          <label className="block text-sm mb-1">Class</label>
           <select
             value={playerClass}
             onChange={(e) => setPlayerClass(e.target.value)}
             className="w-full px-3 py-2 rounded bg-gray-700 text-white"
           >
             <option value="">Select class</option>
-
             <option>Warrior</option>
             <option>Mage</option>
             <option>Priest</option>
@@ -253,134 +215,112 @@ export default function GuildForm() {
             checked={multiRaid}
             onChange={toggleMultiRaid}
           />
-
-          <label>
-            Enable Multi-Raid Mode (up to 8 raids)
-          </label>
+          <label>Enable Multi-Raid Mode (up to 8 raids)</label>
         </div>
 
         {/* Raids */}
         <div className="space-y-8">
 
-          {raids.map((raidBlock, raidIndex) => {
-            const availableItems =
-              RAID_ITEMS[raidBlock.raid] || []
+          {raids.map((raidBlock, raidIndex) => (
+            <div
+              key={raidIndex}
+              className="border border-gray-700 rounded-lg p-4"
+            >
 
-            return (
-              <div
-                key={raidIndex}
-                className="border border-gray-700 rounded-lg p-4"
-              >
+              {/* Raid header */}
+              <div className="flex justify-between mb-3">
+                <div className="flex gap-3 items-center">
+                  <span className="font-semibold">
+                    Raid {raidIndex + 1}
+                  </span>
 
-                {/* Header */}
-                <div className="flex justify-between mb-3">
-
-                  <div className="flex gap-3">
-
-                    <span className="font-semibold">
-                      Raid {raidIndex + 1}
-                    </span>
-
-                    <select
-                      value={raidBlock.raid}
-                      onChange={(e) =>
-                        updateRaid(raidIndex, e.target.value)
-                      }
-                      className="px-3 py-2 rounded bg-gray-700 text-white"
-                    >
-                      {RAIDS.map((r) => (
-                        <option key={r}>{r}</option>
-                      ))}
-                    </select>
-
-                  </div>
-
-                  {multiRaid && raids.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeRaid(raidIndex)}
-                      className="text-red-400"
-                    >
-                      Remove
-                    </button>
-                  )}
+                  <select
+                    value={raidBlock.raid}
+                    onChange={(e) =>
+                      updateRaid(raidIndex, e.target.value)
+                    }
+                    className="px-3 py-2 rounded bg-gray-700 text-white"
+                  >
+                    {RAIDS.map((r) => (
+                      <option key={r}>{r}</option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Items */}
-                <div className="space-y-2">
-
-                  {raidBlock.items.map((row, itemIndex) => (
-                    <div
-                      key={itemIndex}
-                      className="grid grid-cols-12 gap-2"
-                    >
-
-                      {/* Item */}
-                      <select
-                        value={row.item}
-                        onChange={(e) =>
-                          updateItem(
-                            raidIndex,
-                            itemIndex,
-                            e.target.value
-                          )
-                        }
-                        className="col-span-7 px-3 py-2 rounded bg-gray-700 text-white"
-                      >
-                        <option value="">
-                          Select item
-                        </option>
-
-                        {availableItems.map((item) => (
-                          <option key={item}>
-                            {item}
-                          </option>
-                        ))}
-                      </select>
-
-                      {/* Priority */}
-                      <select
-                        value={row.priority}
-                        onChange={(e) =>
-                          updatePriority(
-                            raidIndex,
-                            itemIndex,
-                            e.target.value as Priority
-                          )
-                        }
-                        className="col-span-3 px-3 py-2 rounded bg-gray-700 text-white"
-                      >
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
-                      </select>
-
-                      {/* Remove */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeItem(raidIndex, itemIndex)
-                        }
-                        className="col-span-2 text-red-400"
-                      >
-                        ✕
-                      </button>
-
-                    </div>
-                  ))}
-
+                {multiRaid && raids.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => addItem(raidIndex)}
-                    className="text-green-400 text-sm mt-2"
+                    onClick={() => removeRaid(raidIndex)}
+                    className="text-red-400"
                   >
-                    + Add Item
+                    Remove
                   </button>
-
-                </div>
+                )}
               </div>
-            )
-          })}
+
+              {/* Items */}
+              <div className="space-y-2">
+                {raidBlock.items.map((row, itemIndex) => (
+                  <div
+                    key={itemIndex}
+                    className="grid grid-cols-12 gap-2"
+                  >
+
+                    {/* Item name (FREE TEXT) */}
+                    <input
+                      type="text"
+                      placeholder="Item name (e.g. Perdition's Blade)"
+                      value={row.item}
+                      onChange={(e) =>
+                        updateItem(
+                          raidIndex,
+                          itemIndex,
+                          e.target.value
+                        )
+                      }
+                      className="col-span-7 px-3 py-2 rounded bg-gray-700 text-white"
+                    />
+
+                    {/* Priority */}
+                    <select
+                      value={row.priority}
+                      onChange={(e) =>
+                        updatePriority(
+                          raidIndex,
+                          itemIndex,
+                          e.target.value as Priority
+                        )
+                      }
+                      className="col-span-3 px-3 py-2 rounded bg-gray-700 text-white"
+                    >
+                      <option>Low</option>
+                      <option>Medium</option>
+                      <option>High</option>
+                    </select>
+
+                    {/* Remove */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        removeItem(raidIndex, itemIndex)
+                      }
+                      className="col-span-2 text-red-400"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => addItem(raidIndex)}
+                  className="text-green-400 text-sm mt-2"
+                >
+                  + Add Item
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Add Raid */}
