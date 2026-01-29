@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/supabase/client'
 
+/* ---------------- TYPES ---------------- */
+
 type Priority = 'Low-OS' | 'Medium-MS' | 'High-SR' | 'HR'
 
 type ItemEntry = {
@@ -17,7 +19,8 @@ type RaidEntry = {
   items: ItemEntry[]
 }
 
-/* Raids */
+/* ---------------- CONSTANTS ---------------- */
+
 const RAIDS = [
   'Molten Core',
   'Blackwing Lair',
@@ -27,7 +30,6 @@ const RAIDS = [
   'Karazhan 40',
 ]
 
-/* Slots */
 const SLOTS = [
   'Head',
   'Neck',
@@ -47,6 +49,8 @@ const SLOTS = [
   'Ranged',
 ]
 
+/* ---------------- HELPERS ---------------- */
+
 const emptyItem = (): ItemEntry => ({
   item: '',
   slot: '',
@@ -59,12 +63,18 @@ const emptyRaid = (): RaidEntry => ({
   items: [emptyItem()],
 })
 
+/* ---------------- COMPONENT ---------------- */
+
 export default function GuildForm() {
   const supabase = createClient()
 
+  /* User */
   const [isAdmin, setIsAdmin] = useState(false)
+
+  /* HR */
   const [hardReserves, setHardReserves] = useState<string[]>([])
 
+  /* Form */
   const [characterName, setCharacterName] = useState('')
   const [playerClass, setPlayerClass] = useState('')
 
@@ -73,9 +83,7 @@ export default function GuildForm() {
 
   const [raids, setRaids] = useState<RaidEntry[]>([emptyRaid()])
 
-  /* -------------------------------- */
-  /* LOAD ADMIN + HR */
-  /* -------------------------------- */
+  /* ---------------- LOAD DATA ---------------- */
 
   useEffect(() => {
     async function load() {
@@ -103,9 +111,7 @@ export default function GuildForm() {
     load()
   }, [])
 
-  /* -------------------------------- */
-  /* RAID CONTROLS */
-  /* -------------------------------- */
+  /* ---------------- RAID CONTROLS ---------------- */
 
   function toggleMultiRaid() {
     setMultiRaid(prev => {
@@ -132,14 +138,14 @@ export default function GuildForm() {
   function updateRaid(index: number, value: string) {
     setRaids(prev =>
       prev.map((r, i) =>
-        i === index ? { ...r, raid: value, items: [emptyItem()] } : r
+        i === index
+          ? { ...r, raid: value, items: [emptyItem()] }
+          : r
       )
     )
   }
 
-  /* -------------------------------- */
-  /* ITEM CONTROLS */
-  /* -------------------------------- */
+  /* ---------------- ITEM CONTROLS ---------------- */
 
   function addItem(raidIndex: number) {
     setRaids(prev =>
@@ -240,9 +246,7 @@ export default function GuildForm() {
     )
   }
 
-  /* -------------------------------- */
-  /* SUBMIT */
-  /* -------------------------------- */
+  /* ---------------- SUBMIT ---------------- */
 
   async function submitRequests() {
     setLoading(true)
@@ -302,17 +306,21 @@ export default function GuildForm() {
       return
     }
 
-    const { error } = await supabase.from('loot_requests').insert(rows)
+    const { error } = await supabase
+      .from('loot_requests')
+      .insert(rows)
 
-    if (error) alert('Submit failed')
-    else alert('Submitted')
+    if (error) {
+      console.error(error)
+      alert('Submit failed')
+    } else {
+      alert('Submitted')
+    }
 
     setLoading(false)
   }
 
-  /* -------------------------------- */
-  /* UI */
-  /* -------------------------------- */
+  /* ---------------- UI ---------------- */
 
   return (
     <div className="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow">
@@ -323,7 +331,6 @@ export default function GuildForm() {
 
       <form className="space-y-6">
 
-        {/* Character */}
         <input
           placeholder="Character Name"
           value={characterName}
@@ -331,13 +338,13 @@ export default function GuildForm() {
           className="w-full bg-gray-700 px-3 py-2 rounded"
         />
 
-        {/* Class */}
         <select
           value={playerClass}
           onChange={e => setPlayerClass(e.target.value)}
           className="w-full bg-gray-700 px-3 py-2 rounded"
         >
           <option value="">Select Class</option>
+
           {[
             'Warrior',
             'Mage',
@@ -353,7 +360,8 @@ export default function GuildForm() {
           ))}
         </select>
 
-        {/* Multi */}
+        {/* Multi Raid */}
+
         <div className="flex gap-3">
           <input
             type="checkbox"
@@ -363,7 +371,8 @@ export default function GuildForm() {
           <label>Enable Multi-Raid</label>
         </div>
 
-        {/* Add Raid Button */}
+        {/* Add Raid */}
+
         {multiRaid && raids.length < 8 && (
           <button
             type="button"
@@ -375,6 +384,7 @@ export default function GuildForm() {
         )}
 
         {/* Raids */}
+
         <div className="space-y-8">
 
           {raids.map((raidBlock, raidIndex) => (
@@ -384,7 +394,6 @@ export default function GuildForm() {
               className="border border-gray-700 p-4 rounded"
             >
 
-              {/* Header */}
               <div className="flex justify-between mb-3">
 
                 <select
@@ -411,6 +420,7 @@ export default function GuildForm() {
               </div>
 
               {/* Items */}
+
               <div className="space-y-3">
 
                 {raidBlock.items.map((row, itemIndex) => (
@@ -444,6 +454,7 @@ export default function GuildForm() {
                         className="col-span-3 bg-gray-700 px-2 py-1 rounded"
                       >
                         <option value="">Slot</option>
+
                         {SLOTS.map(s => (
                           <option key={s}>{s}</option>
                         ))}
@@ -510,6 +521,7 @@ export default function GuildForm() {
         </div>
 
         {/* Submit */}
+
         <button
           type="button"
           disabled={loading}
