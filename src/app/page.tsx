@@ -15,22 +15,19 @@ export default function Home() {
         />
       </div>
 
-      {/* Top Right Panel */}
+      {/* Top Right User */}
       <div className="absolute top-4 right-4 z-40">
         <UserBadge />
       </div>
 
-      {/* Main Content */}
-      <div className="flex justify-center gap-6 min-h-screen px-4 pt-32">
+      {/* Hard Reserves Panel (RIGHT SIDE) */}
+      <div className="absolute top-32 right-6 z-30 w-[320px] max-h-[70vh] overflow-y-auto">
+        <HardReserves />
+      </div>
 
-        {/* Main Form */}
+      {/* Center Content (UNCHANGED) */}
+      <div className="flex items-center justify-center min-h-screen px-4">
         <GuildForm />
-
-        {/* Hard Reserves Panel */}
-        <div className="w-[320px] shrink-0">
-          <HardReserves />
-        </div>
-
       </div>
 
     </main>
