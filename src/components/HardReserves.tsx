@@ -132,7 +132,7 @@ export default function HardReserves() {
       />
 
       {/* List */}
-      <div className="space-y-3 mb-4 max-h-[45vh] overflow-y-auto">
+      <div className="space-y-3 mb-4 max-h-[70vh] overflow-y-auto">
 
         {filteredRows.length === 0 && (
           <div className="text-gray-400 text-sm text-center">
