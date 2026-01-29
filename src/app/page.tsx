@@ -20,14 +20,19 @@ export default function Home() {
         <UserBadge />
       </div>
 
-      {/* Hard Reserves (Right Side, Centered with Form) */}
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 w-[320px] max-h-[70vh] overflow-y-auto">
-        <HardReserves />
-      </div>
+      {/* Main Layout */}
+      <div className="flex justify-center items-center min-h-screen gap-10 px-6">
 
-      {/* Main Center Form */}
-      <div className="flex items-center justify-center min-h-screen px-4">
-        <GuildForm />
+        {/* Hard Reserves (Left of Form) */}
+        <div className="w-[320px] max-h-[70vh] overflow-y-auto mt-24">
+          <HardReserves />
+        </div>
+
+        {/* Main Form (Center) */}
+        <div>
+          <GuildForm />
+        </div>
+
       </div>
 
     </main>
