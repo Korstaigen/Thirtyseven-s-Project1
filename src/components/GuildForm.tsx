@@ -473,9 +473,9 @@ export default function GuildForm() {
                         }
                         className="col-span-2 bg-gray-700 px-2 py-1 rounded"
                       >
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
+                        <option>Low - OS</option>
+                        <option>Medium - MS</option>
+                        <option>High - SR</option>
                         {isAdmin && <option>HR</option>}
                       </select>
 
