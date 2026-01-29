@@ -11,12 +11,6 @@ type OnlineUser = {
   isAdmin: boolean
 }
 
-type ChannelStatus =
-  | 'SUBSCRIBED'
-  | 'TIMED_OUT'
-  | 'CLOSED'
-  | 'CHANNEL_ERROR'
-
 export default function OnlineUsers() {
   const supabase = createClient()
   const [users, setUsers] = useState<OnlineUser[]>([])
@@ -61,15 +55,11 @@ export default function OnlineUsers() {
         setUsers(list)
       })
 
-      // 🔒 TYPE-SAFE STATUS HANDLER (Supabase-proof)
-      const handleStatus = (status: ChannelStatus) => {
-        if (status === 'SUBSCRIBED') {
-          channel!.track(payload)
-        }
-      }
+      // ✅ NO CALLBACK = NO TYPE ERROR
+      channel.subscribe()
 
-      // 👇 Cast required because Supabase types are wrong
-      channel.subscribe(handleStatus as unknown as (status: any) => void)
+      // ✅ Track immediately after subscribing
+      await channel.track(payload)
     }
 
     init()
