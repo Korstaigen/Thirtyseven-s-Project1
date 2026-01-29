@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/supabase/client'
 
-type Priority = 'Low' | 'Medium' | 'High' | 'HR'
+type Priority = 'Low - OS' | 'Medium - MS' | 'High - SR Item' | 'HR'
 
 type ItemEntry = {
   item: string
