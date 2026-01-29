@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/supabase/client'
 
 type LootRow = {
@@ -45,6 +46,7 @@ const SLOTS = [
 
 export default function PrioPage() {
   const supabase = createClient()
+  const router = useRouter()
 
   const [rows, setRows] = useState<LootRow[]>([])
   const [filteredRows, setFilteredRows] = useState<LootRow[]>([])
@@ -259,9 +261,21 @@ export default function PrioPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
 
-        <h1 className="text-3xl font-bold">
-          Raid Priority Overview
-        </h1>
+        <div className="flex items-center justify-between">
+
+          <h1 className="text-3xl font-bold">
+            Raid Priority Overview
+          </h1>
+
+          {/* Back Button */}
+          <button
+            onClick={() => router.push('/')}
+            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm font-semibold"
+          >
+            ← Back to Main
+          </button>
+
+        </div>
 
         {/* Filters */}
         <div className="flex gap-3 flex-wrap items-center">
@@ -341,168 +355,5 @@ export default function PrioPage() {
         {filteredRows.map((row) => (
           <div
             key={row.id}
-            className={`bg-gray-800 p-4 rounded shadow ${
-              row.locked ? 'opacity-70' : ''
-            }`}
-          >
-
-            <div className="font-semibold">
-              {row.character_name}
-            </div>
-
-            <div className="text-sm text-gray-300">
-              {row.class} • {row.raid} • {row.slot}
-            </div>
-
-            {/* Item */}
-            <div className="mt-2 text-sm">
-              Item:{' '}
-
-              {!isAdmin || row.locked ? (
-                <span className="text-blue-400">
-                  {row.item_name}
-                </span>
-              ) : (
-                <input
-                  defaultValue={row.item_name}
-                  onBlur={(e) =>
-                    updateRow(row.id, {
-                      item_name: e.target.value,
-                    })
-                  }
-                  className="bg-gray-700 px-2 py-1 rounded text-sm w-full"
-                />
-              )}
-            </div>
-
-            {/* Priority */}
-            <div className="text-sm mt-1 flex gap-2">
-
-              Priority:
-
-              {!isAdmin || row.locked ? (
-                <span className={getPriorityColor(row.priority)}>
-                  {row.priority}
-                </span>
-              ) : (
-                <select
-                  value={row.priority}
-                  onChange={(e) =>
-                    updateRow(row.id, {
-                      priority: e.target.value,
-                    })
-                  }
-                  className="bg-gray-700 px-2 py-1 rounded text-sm"
-                >
-                  {PRIORITIES.map(p => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
-              )}
-
-            </div>
-
-            {/* NOTES */}
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-
-              {/* User Note */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1">
-                  User Comment
-                </div>
-
-                <div className="text-sm bg-gray-700 px-2 py-1 rounded min-h-[40px]">
-                  {row.user_note || '—'}
-                </div>
-              </div>
-
-              {/* Admin Note */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1">
-                  Admin Note
-                </div>
-
-                {!isAdmin || row.locked ? (
-                  <div className="text-sm bg-gray-700 px-2 py-1 rounded min-h-[40px]">
-                    {row.admin_note || '—'}
-                  </div>
-                ) : (
-                  <textarea
-                    defaultValue={row.admin_note || ''}
-                    onBlur={(e) =>
-                      updateRow(row.id, {
-                        admin_note: e.target.value,
-                      })
-                    }
-                    className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
-                    rows={2}
-                  />
-                )}
-              </div>
-
-            </div>
-
-            {/* Status */}
-            {row.status && (
-              <div className="text-xs text-gray-400 mt-2">
-
-                {row.status === 'approved' && (
-                  <>Approved by {row.reviewed_by}</>
-                )}
-
-                {row.status === 'rejected' && (
-                  <>Rejected by {row.reviewed_by}</>
-                )}
-
-              </div>
-            )}
-
-            <div className="text-xs text-gray-500 mt-1">
-              {new Date(row.created_at).toLocaleString()}
-            </div>
-
-            {/* Admin Controls */}
-            {isAdmin && (
-              <div className="mt-3 flex gap-2 flex-wrap">
-
-                <button
-                  onClick={() => updateStatus(row.id, 'approved')}
-                  disabled={row.locked}
-                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs disabled:opacity-50"
-                >
-                  Approve
-                </button>
-
-                <button
-                  onClick={() => updateStatus(row.id, 'rejected')}
-                  disabled={row.locked}
-                  className="bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded text-xs disabled:opacity-50"
-                >
-                  Reject
-                </button>
-
-                <button
-                  onClick={() => toggleLock(row)}
-                  className="bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded text-xs"
-                >
-                  {row.locked ? 'Unlock' : 'Lock'}
-                </button>
-
-                <button
-                  onClick={() => deleteRequest(row.id)}
-                  className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs"
-                >
-                  Delete
-                </button>
-
-              </div>
-            )}
-
-          </div>
-        ))}
-
-      </div>
-
-    </div>
-  )
-}
+            className={`bg-gray-800 p
+::contentReference[oaicite:0]{index=0}
