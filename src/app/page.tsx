@@ -9,7 +9,7 @@ export default function Home() {
       {/* Top Left GIF */}
       <div className="absolute top-4 left-4 z-40">
         <img
-          src="https://media1.tenor.com/m/xgVPxE3zSQAAAAAd/hop-on-turtlewow-turtlewow.gif"
+          src="https://tenor.com/view/hop-on-turtlewow-turtlewow-hop-on-turtle-riding-gif-27453619"
           alt="guild gif"
           className="w-[120px] h-[120px] rounded-lg shadow"
         />
