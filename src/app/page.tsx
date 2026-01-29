@@ -1,6 +1,7 @@
 import GuildForm from '../components/GuildForm'
 import UserBadge from '../components/UserBadge'
 import HardReserves from '../components/HardReserves'
+import OnlineUsers from '../components/OnlineUsers'
 
 export default function Home() {
   return (
@@ -14,15 +15,20 @@ export default function Home() {
       {/* Main Layout */}
       <div className="min-h-screen flex justify-center items-start pt-28 px-6">
 
-        {/* Grid Container */}
-        <div className="grid grid-cols-[1fr_340px] gap-8 max-w-6xl w-full">
+        {/* Grid: Online | Form | HR */}
+        <div className="grid grid-cols-[260px_1fr_340px] gap-8 max-w-7xl w-full">
 
-          {/* Main Form (Left, slightly shifted) */}
-          <div className="flex justify-end">
+          {/* Online Users (Left) */}
+          <div className="h-[70vh] overflow-y-auto">
+            <OnlineUsers />
+          </div>
+
+          {/* Main Form (Center) */}
+          <div className="flex justify-center">
             <GuildForm />
           </div>
 
-          {/* Hard Reserves (Right, aligned) */}
+          {/* Hard Reserves (Right) */}
           <div className="h-[70vh] overflow-y-auto">
             <HardReserves />
           </div>
