@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/supabase/client'
-import type {
-  RealtimeChannel,
-  RealtimeChannelStatus,
-} from '@supabase/supabase-js'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 type OnlineUser = {
   id: string
@@ -14,9 +11,14 @@ type OnlineUser = {
   isAdmin: boolean
 }
 
+type ChannelStatus =
+  | 'SUBSCRIBED'
+  | 'TIMED_OUT'
+  | 'CLOSED'
+  | 'CHANNEL_ERROR'
+
 export default function OnlineUsers() {
   const supabase = createClient()
-
   const [users, setUsers] = useState<OnlineUser[]>([])
 
   useEffect(() => {
@@ -24,7 +26,6 @@ export default function OnlineUsers() {
 
     async function init() {
       const { data } = await supabase.auth.getUser()
-
       if (!data.user) return
 
       /* Get profile */
@@ -38,7 +39,7 @@ export default function OnlineUsers() {
         id: data.user.id,
         name: data.user.user_metadata?.name || 'Unknown',
         avatar: profile?.avatar_url || null,
-        isAdmin: !!profile?.is_admin,
+        isAdmin: Boolean(profile?.is_admin),
       }
 
       channel = supabase.channel('online-users', {
@@ -49,32 +50,28 @@ export default function OnlineUsers() {
         },
       })
 
-      channel
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel!.presenceState()
+      channel.on('presence', { event: 'sync' }, () => {
+        const state = channel!.presenceState()
+        const list: OnlineUser[] = []
 
-          const list: OnlineUser[] = []
+        for (const id in state) {
+          list.push(state[id][0] as OnlineUser)
+        }
 
-          for (const id in state) {
-            const presence = state[id][0] as OnlineUser
-            list.push(presence)
-          }
+        setUsers(list)
+      })
 
-          setUsers(list)
-        })
-        .subscribe(async (status: RealtimeChannelStatus) => {
-          if (status === 'SUBSCRIBED') {
-            await channel!.track(payload)
-          }
-        })
+      channel.subscribe((status: ChannelStatus) => {
+        if (status === 'SUBSCRIBED') {
+          channel!.track(payload)
+        }
+      })
     }
 
     init()
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel)
-      }
+      if (channel) supabase.removeChannel(channel)
     }
   }, [supabase])
 
@@ -86,11 +83,7 @@ export default function OnlineUsers() {
 
       <div className="space-y-2">
         {users.map(u => (
-          <div
-            key={u.id}
-            className="flex items-center gap-2 text-sm"
-          >
-            {/* Avatar */}
+          <div key={u.id} className="flex items-center gap-2 text-sm">
             <img
               src={
                 u.avatar ||
@@ -100,12 +93,8 @@ export default function OnlineUsers() {
               className="w-8 h-8 rounded-full"
             />
 
-            {/* Info */}
             <div className="flex flex-col leading-tight">
-              <span className="font-medium">
-                {u.name}
-              </span>
-
+              <span className="font-medium">{u.name}</span>
               <span
                 className={`text-xs ${
                   u.isAdmin
