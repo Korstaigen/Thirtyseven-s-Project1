@@ -9,6 +9,7 @@ type ItemEntry = {
   item: string
   slot: string
   priority: Priority
+  note: string // USER COMMENT
 }
 
 type RaidEntry = {
@@ -65,13 +66,21 @@ export default function GuildForm() {
   const [raids, setRaids] = useState<RaidEntry[]>([
     {
       raid: 'Molten Core',
-      items: [{ item: '', slot: '', priority: 'Medium' }],
+      items: [
+        {
+          item: '',
+          slot: '',
+          priority: 'Medium',
+          note: '',
+        },
+      ],
     },
   ])
 
   /* -------------------------------- */
-  /* LOAD ADMIN + HR DATA */
+  /* LOAD ADMIN + HR */
   /* -------------------------------- */
+
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser()
@@ -86,7 +95,6 @@ export default function GuildForm() {
         setIsAdmin(!!profile?.is_admin)
       }
 
-      /* Load hard reserves */
       const { data: hrData } = await supabase
         .from('hard_reserves')
         .select('item_name')
@@ -110,7 +118,14 @@ export default function GuildForm() {
       setRaids([
         {
           raid: 'Molten Core',
-          items: [{ item: '', slot: '', priority: 'Medium' }],
+          items: [
+            {
+              item: '',
+              slot: '',
+              priority: 'Medium',
+              note: '',
+            },
+          ],
         },
       ])
     }
@@ -125,7 +140,14 @@ export default function GuildForm() {
       ...raids,
       {
         raid: 'Molten Core',
-        items: [{ item: '', slot: '', priority: 'Medium' }],
+        items: [
+          {
+            item: '',
+            slot: '',
+            priority: 'Medium',
+            note: '',
+          },
+        ],
       },
     ])
   }
@@ -138,10 +160,17 @@ export default function GuildForm() {
 
   function updateRaid(index: number, value: string) {
     const copy = [...raids]
+
     copy[index].raid = value
     copy[index].items = [
-      { item: '', slot: '', priority: 'Medium' },
+      {
+        item: '',
+        slot: '',
+        priority: 'Medium',
+        note: '',
+      },
     ]
+
     setRaids(copy)
   }
 
@@ -156,6 +185,7 @@ export default function GuildForm() {
       item: '',
       slot: '',
       priority: 'Medium',
+      note: '',
     })
 
     setRaids(copy)
@@ -197,6 +227,16 @@ export default function GuildForm() {
     setRaids(copy)
   }
 
+  function updateNote(
+    raidIndex: number,
+    itemIndex: number,
+    value: string
+  ) {
+    const copy = [...raids]
+    copy[raidIndex].items[itemIndex].note = value
+    setRaids(copy)
+  }
+
   /* -------------------------------- */
   /* SUBMIT */
   /* -------------------------------- */
@@ -228,18 +268,14 @@ export default function GuildForm() {
 
         if (!name || !item.slot) continue
 
-        /* BLOCK HARD RESERVE */
         if (hardReserves.includes(name.toLowerCase())) {
-          alert(
-            `"${name}" is Hard Reserved and cannot be prioritized.`
-          )
+          alert(`"${name}" is Hard Reserved.`)
           setLoading(false)
           return
         }
 
-        /* BLOCK HR FOR NON ADMINS */
         if (!isAdmin && item.priority === 'HR') {
-          alert('Only admins may use HR priority.')
+          alert('Only admins may use HR.')
           setLoading(false)
           return
         }
@@ -255,12 +291,14 @@ export default function GuildForm() {
           item_name: name,
           slot: item.slot,
           priority: item.priority,
+
+          user_note: item.note || null,
         })
       }
     }
 
-    if (rows.length === 0) {
-      alert('No valid items entered')
+    if (!rows.length) {
+      alert('No valid items')
       setLoading(false)
       return
     }
@@ -273,7 +311,7 @@ export default function GuildForm() {
       console.error(error)
       alert('Submit failed')
     } else {
-      alert('Submitted successfully')
+      alert('Submitted')
     }
 
     setLoading(false)
@@ -301,7 +339,7 @@ export default function GuildForm() {
           <input
             value={characterName}
             onChange={(e) => setCharacterName(e.target.value)}
-            className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+            className="w-full bg-gray-700 px-3 py-2 rounded"
           />
         </div>
 
@@ -314,9 +352,9 @@ export default function GuildForm() {
           <select
             value={playerClass}
             onChange={(e) => setPlayerClass(e.target.value)}
-            className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+            className="w-full bg-gray-700 px-3 py-2 rounded"
           >
-            <option value="">Select class</option>
+            <option value="">Select</option>
 
             <option>Warrior</option>
             <option>Mage</option>
@@ -330,17 +368,15 @@ export default function GuildForm() {
           </select>
         </div>
 
-        {/* Multi Raid */}
-        <div className="flex items-center gap-3">
+        {/* Multi */}
+        <div className="flex gap-3">
           <input
             type="checkbox"
             checked={multiRaid}
             onChange={toggleMultiRaid}
           />
 
-          <label>
-            Enable Multi-Raid Mode
-          </label>
+          <label>Enable Multi-Raid</label>
         </div>
 
         {/* Raids */}
@@ -349,13 +385,13 @@ export default function GuildForm() {
           {raids.map((raidBlock, raidIndex) => (
             <div
               key={raidIndex}
-              className="border border-gray-700 rounded-lg p-4"
+              className="border border-gray-700 p-4 rounded"
             >
 
               {/* Header */}
               <div className="flex justify-between mb-3">
 
-                <div className="flex gap-3 items-center">
+                <div className="flex gap-3">
 
                   <span className="font-semibold">
                     Raid {raidIndex + 1}
@@ -366,7 +402,7 @@ export default function GuildForm() {
                     onChange={(e) =>
                       updateRaid(raidIndex, e.target.value)
                     }
-                    className="px-3 py-2 rounded bg-gray-700"
+                    className="bg-gray-700 px-2 py-1 rounded"
                   >
                     {RAIDS.map(r => (
                       <option key={r}>{r}</option>
@@ -387,77 +423,88 @@ export default function GuildForm() {
               </div>
 
               {/* Items */}
-              <div className="space-y-2">
+              <div className="space-y-3">
 
                 {raidBlock.items.map((row, itemIndex) => (
-                  <div
-                    key={itemIndex}
-                    className="grid grid-cols-12 gap-2"
-                  >
+                  <div key={itemIndex}>
 
-                    {/* Item */}
-                    <input
-                      type="text"
-                      placeholder="Item name"
-                      value={row.item}
+                    {/* Row */}
+                    <div className="grid grid-cols-12 gap-2">
+
+                      <input
+                        value={row.item}
+                        placeholder="Item"
+                        onChange={(e) =>
+                          updateItem(
+                            raidIndex,
+                            itemIndex,
+                            e.target.value
+                          )
+                        }
+                        className="col-span-4 bg-gray-700 px-2 py-1 rounded"
+                      />
+
+                      <select
+                        value={row.slot}
+                        onChange={(e) =>
+                          updateSlot(
+                            raidIndex,
+                            itemIndex,
+                            e.target.value
+                          )
+                        }
+                        className="col-span-3 bg-gray-700 px-2 py-1 rounded"
+                      >
+                        <option value="">Slot</option>
+
+                        {SLOTS.map(s => (
+                          <option key={s}>{s}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={row.priority}
+                        onChange={(e) =>
+                          updatePriority(
+                            raidIndex,
+                            itemIndex,
+                            e.target.value as Priority
+                          )
+                        }
+                        className="col-span-2 bg-gray-700 px-2 py-1 rounded"
+                      >
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                        {isAdmin && <option>HR</option>}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeItem(raidIndex, itemIndex)
+                        }
+                        className="col-span-1 text-red-400"
+                      >
+                        ✕
+                      </button>
+
+                    </div>
+
+                    {/* User Note */}
+                    <textarea
+                      placeholder="Why do you want this item?"
+                      value={row.note}
                       onChange={(e) =>
-                        updateItem(
+                        updateNote(
                           raidIndex,
                           itemIndex,
                           e.target.value
                         )
                       }
-                      className="col-span-5 bg-gray-700 px-3 py-2 rounded"
+                      className="mt-1 w-full bg-gray-700 px-2 py-1 rounded text-sm"
+                      rows={2}
                     />
-
-                    {/* Slot */}
-                    <select
-                      value={row.slot}
-                      onChange={(e) =>
-                        updateSlot(
-                          raidIndex,
-                          itemIndex,
-                          e.target.value
-                        )
-                      }
-                      className="col-span-3 bg-gray-700 px-2 py-2 rounded"
-                    >
-                      <option value="">Slot</option>
-
-                      {SLOTS.map(s => (
-                        <option key={s}>{s}</option>
-                      ))}
-                    </select>
-
-                    {/* Priority */}
-                    <select
-                      value={row.priority}
-                      onChange={(e) =>
-                        updatePriority(
-                          raidIndex,
-                          itemIndex,
-                          e.target.value as Priority
-                        )
-                      }
-                      className="col-span-2 bg-gray-700 px-2 py-2 rounded"
-                    >
-                      <option>Low</option>
-                      <option>Medium</option>
-                      <option>High</option>
-
-                      {isAdmin && <option>HR</option>}
-                    </select>
-
-                    {/* Remove */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        removeItem(raidIndex, itemIndex)
-                      }
-                      className="col-span-2 text-red-400"
-                    >
-                      ✕
-                    </button>
 
                   </div>
                 ))}
@@ -465,12 +512,13 @@ export default function GuildForm() {
                 <button
                   type="button"
                   onClick={() => addItem(raidIndex)}
-                  className="text-green-400 text-sm mt-2"
+                  className="text-green-400 text-sm"
                 >
                   + Add Item
                 </button>
 
               </div>
+
             </div>
           ))}
         </div>
@@ -482,7 +530,7 @@ export default function GuildForm() {
           onClick={submitRequests}
           className="w-full bg-blue-600 py-3 rounded font-semibold"
         >
-          {loading ? 'Submitting...' : 'Submit Priorities'}
+          {loading ? 'Submitting…' : 'Submit Priorities'}
         </button>
 
       </form>
