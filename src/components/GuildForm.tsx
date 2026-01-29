@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/supabase/client'
 
-type Priority = 'Low - OS' | 'Medium - MS' | 'High - SR Item' | 'HR'
+type Priority = 'Low-OS' | 'Medium-MS' | 'High-SR' | 'HR'
 
 type ItemEntry = {
   item: string
   slot: string
   priority: Priority
-  note: string // USER COMMENT
+  note: string
 }
 
 type RaidEntry = {
@@ -47,35 +47,31 @@ const SLOTS = [
   'Ranged',
 ]
 
+const emptyItem = (): ItemEntry => ({
+  item: '',
+  slot: '',
+  priority: 'Medium-MS',
+  note: '',
+})
+
+const emptyRaid = (): RaidEntry => ({
+  raid: 'Molten Core',
+  items: [emptyItem()],
+})
+
 export default function GuildForm() {
   const supabase = createClient()
 
-  /* User */
   const [isAdmin, setIsAdmin] = useState(false)
-
-  /* HR list */
   const [hardReserves, setHardReserves] = useState<string[]>([])
 
-  /* Form */
   const [characterName, setCharacterName] = useState('')
   const [playerClass, setPlayerClass] = useState('')
 
   const [multiRaid, setMultiRaid] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const [raids, setRaids] = useState<RaidEntry[]>([
-    {
-      raid: 'Molten Core',
-      items: [
-        {
-          item: '',
-          slot: '',
-          priority: 'Medium',
-          note: '',
-        },
-      ],
-    },
-  ])
+  const [raids, setRaids] = useState<RaidEntry[]>([emptyRaid()])
 
   /* -------------------------------- */
   /* LOAD ADMIN + HR */
@@ -100,9 +96,7 @@ export default function GuildForm() {
         .select('item_name')
 
       if (hrData) {
-        setHardReserves(
-          hrData.map(r => r.item_name.toLowerCase())
-        )
+        setHardReserves(hrData.map(r => r.item_name.toLowerCase()))
       }
     }
 
@@ -114,64 +108,33 @@ export default function GuildForm() {
   /* -------------------------------- */
 
   function toggleMultiRaid() {
-    if (!multiRaid) {
-      setRaids([
-        {
-          raid: 'Molten Core',
-          items: [
-            {
-              item: '',
-              slot: '',
-              priority: 'Medium',
-              note: '',
-            },
-          ],
-        },
-      ])
-    }
+    setMultiRaid(prev => {
+      if (prev) {
+        setRaids([emptyRaid()])
+      } else {
+        setRaids([emptyRaid(), emptyRaid()])
+      }
 
-    setMultiRaid(!multiRaid)
+      return !prev
+    })
   }
 
   function addRaid() {
     if (raids.length >= 8) return
 
-    setRaids([
-      ...raids,
-      {
-        raid: 'Molten Core',
-        items: [
-          {
-            item: '',
-            slot: '',
-            priority: 'Medium',
-            note: '',
-          },
-        ],
-      },
-    ])
+    setRaids(prev => [...prev, emptyRaid()])
   }
 
   function removeRaid(index: number) {
-    const copy = [...raids]
-    copy.splice(index, 1)
-    setRaids(copy)
+    setRaids(prev => prev.filter((_, i) => i !== index))
   }
 
   function updateRaid(index: number, value: string) {
-    const copy = [...raids]
-
-    copy[index].raid = value
-    copy[index].items = [
-      {
-        item: '',
-        slot: '',
-        priority: 'Medium',
-        note: '',
-      },
-    ]
-
-    setRaids(copy)
+    setRaids(prev =>
+      prev.map((r, i) =>
+        i === index ? { ...r, raid: value, items: [emptyItem()] } : r
+      )
+    )
   }
 
   /* -------------------------------- */
@@ -179,22 +142,26 @@ export default function GuildForm() {
   /* -------------------------------- */
 
   function addItem(raidIndex: number) {
-    const copy = [...raids]
-
-    copy[raidIndex].items.push({
-      item: '',
-      slot: '',
-      priority: 'Medium',
-      note: '',
-    })
-
-    setRaids(copy)
+    setRaids(prev =>
+      prev.map((r, i) =>
+        i === raidIndex
+          ? { ...r, items: [...r.items, emptyItem()] }
+          : r
+      )
+    )
   }
 
   function removeItem(raidIndex: number, itemIndex: number) {
-    const copy = [...raids]
-    copy[raidIndex].items.splice(itemIndex, 1)
-    setRaids(copy)
+    setRaids(prev =>
+      prev.map((r, i) =>
+        i === raidIndex
+          ? {
+              ...r,
+              items: r.items.filter((_, j) => j !== itemIndex),
+            }
+          : r
+      )
+    )
   }
 
   function updateItem(
@@ -202,9 +169,18 @@ export default function GuildForm() {
     itemIndex: number,
     value: string
   ) {
-    const copy = [...raids]
-    copy[raidIndex].items[itemIndex].item = value
-    setRaids(copy)
+    setRaids(prev =>
+      prev.map((r, i) =>
+        i === raidIndex
+          ? {
+              ...r,
+              items: r.items.map((it, j) =>
+                j === itemIndex ? { ...it, item: value } : it
+              ),
+            }
+          : r
+      )
+    )
   }
 
   function updateSlot(
@@ -212,9 +188,18 @@ export default function GuildForm() {
     itemIndex: number,
     value: string
   ) {
-    const copy = [...raids]
-    copy[raidIndex].items[itemIndex].slot = value
-    setRaids(copy)
+    setRaids(prev =>
+      prev.map((r, i) =>
+        i === raidIndex
+          ? {
+              ...r,
+              items: r.items.map((it, j) =>
+                j === itemIndex ? { ...it, slot: value } : it
+              ),
+            }
+          : r
+      )
+    )
   }
 
   function updatePriority(
@@ -222,9 +207,18 @@ export default function GuildForm() {
     itemIndex: number,
     value: Priority
   ) {
-    const copy = [...raids]
-    copy[raidIndex].items[itemIndex].priority = value
-    setRaids(copy)
+    setRaids(prev =>
+      prev.map((r, i) =>
+        i === raidIndex
+          ? {
+              ...r,
+              items: r.items.map((it, j) =>
+                j === itemIndex ? { ...it, priority: value } : it
+              ),
+            }
+          : r
+      )
+    )
   }
 
   function updateNote(
@@ -232,9 +226,18 @@ export default function GuildForm() {
     itemIndex: number,
     value: string
   ) {
-    const copy = [...raids]
-    copy[raidIndex].items[itemIndex].note = value
-    setRaids(copy)
+    setRaids(prev =>
+      prev.map((r, i) =>
+        i === raidIndex
+          ? {
+              ...r,
+              items: r.items.map((it, j) =>
+                j === itemIndex ? { ...it, note: value } : it
+              ),
+            }
+          : r
+      )
+    )
   }
 
   /* -------------------------------- */
@@ -260,38 +263,34 @@ export default function GuildForm() {
       return
     }
 
-    const rows = []
+    const rows: any[] = []
 
-    for (const raidBlock of raids) {
-      for (const item of raidBlock.items) {
+    for (const raid of raids) {
+      for (const item of raid.items) {
         const name = item.item.trim()
 
         if (!name || !item.slot) continue
 
         if (hardReserves.includes(name.toLowerCase())) {
-          alert(`"${name}" is Hard Reserved.`)
+          alert(`"${name}" is Hard Reserved`)
           setLoading(false)
           return
         }
 
         if (!isAdmin && item.priority === 'HR') {
-          alert('Only admins may use HR.')
+          alert('Only admins may use HR')
           setLoading(false)
           return
         }
 
         rows.push({
           user_id: user.id,
-          discord_name: user.user_metadata?.name ?? 'Unknown',
-
           character_name: characterName,
           class: playerClass,
-
-          raid: raidBlock.raid,
+          raid: raid.raid,
           item_name: name,
           slot: item.slot,
           priority: item.priority,
-
           user_note: item.note || null,
         })
       }
@@ -303,16 +302,10 @@ export default function GuildForm() {
       return
     }
 
-    const { error } = await supabase
-      .from('loot_requests')
-      .insert(rows)
+    const { error } = await supabase.from('loot_requests').insert(rows)
 
-    if (error) {
-      console.error(error)
-      alert('Submit failed')
-    } else {
-      alert('Submitted')
-    }
+    if (error) alert('Submit failed')
+    else alert('Submitted')
 
     setLoading(false)
   }
@@ -331,42 +324,34 @@ export default function GuildForm() {
       <form className="space-y-6">
 
         {/* Character */}
-        <div>
-          <label className="block text-sm mb-1">
-            Character Name
-          </label>
-
-          <input
-            value={characterName}
-            onChange={(e) => setCharacterName(e.target.value)}
-            className="w-full bg-gray-700 px-3 py-2 rounded"
-          />
-        </div>
+        <input
+          placeholder="Character Name"
+          value={characterName}
+          onChange={e => setCharacterName(e.target.value)}
+          className="w-full bg-gray-700 px-3 py-2 rounded"
+        />
 
         {/* Class */}
-        <div>
-          <label className="block text-sm mb-1">
-            Class
-          </label>
-
-          <select
-            value={playerClass}
-            onChange={(e) => setPlayerClass(e.target.value)}
-            className="w-full bg-gray-700 px-3 py-2 rounded"
-          >
-            <option value="">Select</option>
-
-            <option>Warrior</option>
-            <option>Mage</option>
-            <option>Priest</option>
-            <option>Rogue</option>
-            <option>Hunter</option>
-            <option>Warlock</option>
-            <option>Druid</option>
-            <option>Paladin</option>
-            <option>Shaman</option>
-          </select>
-        </div>
+        <select
+          value={playerClass}
+          onChange={e => setPlayerClass(e.target.value)}
+          className="w-full bg-gray-700 px-3 py-2 rounded"
+        >
+          <option value="">Select Class</option>
+          {[
+            'Warrior',
+            'Mage',
+            'Priest',
+            'Rogue',
+            'Hunter',
+            'Warlock',
+            'Druid',
+            'Paladin',
+            'Shaman',
+          ].map(c => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
 
         {/* Multi */}
         <div className="flex gap-3">
@@ -375,14 +360,25 @@ export default function GuildForm() {
             checked={multiRaid}
             onChange={toggleMultiRaid}
           />
-
           <label>Enable Multi-Raid</label>
         </div>
+
+        {/* Add Raid Button */}
+        {multiRaid && raids.length < 8 && (
+          <button
+            type="button"
+            onClick={addRaid}
+            className="text-green-400 text-sm"
+          >
+            + Add Raid
+          </button>
+        )}
 
         {/* Raids */}
         <div className="space-y-8">
 
           {raids.map((raidBlock, raidIndex) => (
+
             <div
               key={raidIndex}
               className="border border-gray-700 p-4 rounded"
@@ -391,25 +387,17 @@ export default function GuildForm() {
               {/* Header */}
               <div className="flex justify-between mb-3">
 
-                <div className="flex gap-3">
-
-                  <span className="font-semibold">
-                    Raid {raidIndex + 1}
-                  </span>
-
-                  <select
-                    value={raidBlock.raid}
-                    onChange={(e) =>
-                      updateRaid(raidIndex, e.target.value)
-                    }
-                    className="bg-gray-700 px-2 py-1 rounded"
-                  >
-                    {RAIDS.map(r => (
-                      <option key={r}>{r}</option>
-                    ))}
-                  </select>
-
-                </div>
+                <select
+                  value={raidBlock.raid}
+                  onChange={e =>
+                    updateRaid(raidIndex, e.target.value)
+                  }
+                  className="bg-gray-700 px-2 py-1 rounded"
+                >
+                  {RAIDS.map(r => (
+                    <option key={r}>{r}</option>
+                  ))}
+                </select>
 
                 {multiRaid && raids.length > 1 && (
                   <button
@@ -426,27 +414,27 @@ export default function GuildForm() {
               <div className="space-y-3">
 
                 {raidBlock.items.map((row, itemIndex) => (
+
                   <div key={itemIndex}>
 
-                    {/* Row */}
                     <div className="grid grid-cols-12 gap-2">
 
                       <input
                         value={row.item}
-                        placeholder="Item"
-                        onChange={(e) =>
+                        onChange={e =>
                           updateItem(
                             raidIndex,
                             itemIndex,
                             e.target.value
                           )
                         }
+                        placeholder="Item"
                         className="col-span-4 bg-gray-700 px-2 py-1 rounded"
                       />
 
                       <select
                         value={row.slot}
-                        onChange={(e) =>
+                        onChange={e =>
                           updateSlot(
                             raidIndex,
                             itemIndex,
@@ -456,7 +444,6 @@ export default function GuildForm() {
                         className="col-span-3 bg-gray-700 px-2 py-1 rounded"
                       >
                         <option value="">Slot</option>
-
                         {SLOTS.map(s => (
                           <option key={s}>{s}</option>
                         ))}
@@ -464,7 +451,7 @@ export default function GuildForm() {
 
                       <select
                         value={row.priority}
-                        onChange={(e) =>
+                        onChange={e =>
                           updatePriority(
                             raidIndex,
                             itemIndex,
@@ -491,17 +478,16 @@ export default function GuildForm() {
 
                     </div>
 
-                    {/* User Note */}
                     <textarea
-                      placeholder="Why do you want this item?"
                       value={row.note}
-                      onChange={(e) =>
+                      onChange={e =>
                         updateNote(
                           raidIndex,
                           itemIndex,
                           e.target.value
                         )
                       }
+                      placeholder="Why do you want this item?"
                       className="mt-1 w-full bg-gray-700 px-2 py-1 rounded text-sm"
                       rows={2}
                     />
