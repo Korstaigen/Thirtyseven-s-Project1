@@ -240,7 +240,7 @@ export default function PrioPage() {
 
   async function toggleLock(row: LootRow) {
     await updateRow(row.id, {
-      locked: !row.locked,
+      locked: !Boolean(row.locked)
     })
   }
 
@@ -458,7 +458,7 @@ export default function PrioPage() {
 
                 <button
                   onClick={() => updateStatus(row.id, 'approved')}
-                  disabled={row.locked}
+                  disabled={!!row.locked}
                   className="bg-green-600 px-2 py-1 rounded text-xs"
                 >
                   Approve
