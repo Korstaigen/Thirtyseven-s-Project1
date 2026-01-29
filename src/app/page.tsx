@@ -1,5 +1,6 @@
 import GuildForm from '@/components/GuildForm'
 import UserBadge from '@/components/UserBadge'
+import HardReserves from '@/components/HardReserves'
 
 export default function Home() {
   return (
@@ -19,9 +20,17 @@ export default function Home() {
         <UserBadge />
       </div>
 
-      {/* Center Content */}
-      <div className="flex items-center justify-center min-h-screen px-4">
+      {/* Main Content */}
+      <div className="flex justify-center gap-6 min-h-screen px-4 pt-32">
+
+        {/* Main Form */}
         <GuildForm />
+
+        {/* Hard Reserves Panel */}
+        <div className="w-[320px] shrink-0">
+          <HardReserves />
+        </div>
+
       </div>
 
     </main>
