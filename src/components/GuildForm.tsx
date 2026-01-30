@@ -267,6 +267,12 @@ export default function GuildForm() {
       return
     }
 
+    const discordName =
+      user.user_metadata?.preferred_username ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      'Unknown'
+
     const rows: any[] = []
 
     for (const raid of raids) {
@@ -287,15 +293,30 @@ export default function GuildForm() {
           return
         }
 
+        const normalizedPriority = item.priority
+          .replace('-OS', '')
+          .replace('-MS', '')
+          .replace('-SR', '')
+
         rows.push({
           user_id: user.id,
+          discord_name: discordName,
+
           character_name: characterName,
           class: playerClass,
           raid: raid.raid,
           item_name: name,
           slot: item.slot,
-          priority: item.priority,
+
+          priority: normalizedPriority,
+
+          status: null,
+          approved: false,
+
           user_note: item.note || null,
+          admin_note: null,
+          reviewed_by: null,
+          locked: false,
         })
       }
     }
@@ -312,7 +333,7 @@ export default function GuildForm() {
 
     if (error) {
       console.error(error)
-      alert('Submit failed')
+      alert(error.message)
     } else {
       alert('Submitted')
     }
@@ -360,8 +381,6 @@ export default function GuildForm() {
           ))}
         </select>
 
-        {/* Multi Raid */}
-
         <div className="flex gap-3">
           <input
             type="checkbox"
@@ -370,8 +389,6 @@ export default function GuildForm() {
           />
           <label>Enable Multi-Raid</label>
         </div>
-
-        {/* Add Raid */}
 
         {multiRaid && raids.length < 8 && (
           <button
@@ -382,8 +399,6 @@ export default function GuildForm() {
             + Add Raid
           </button>
         )}
-
-        {/* Raids */}
 
         <div className="space-y-8">
 
@@ -418,8 +433,6 @@ export default function GuildForm() {
                   </button>
                 )}
               </div>
-
-              {/* Items */}
 
               <div className="space-y-3">
 
@@ -520,8 +533,6 @@ export default function GuildForm() {
           ))}
         </div>
 
-        {/* Submit */}
-
         <button
           type="button"
           disabled={loading}
@@ -535,4 +546,3 @@ export default function GuildForm() {
     </div>
   )
 }
- 
