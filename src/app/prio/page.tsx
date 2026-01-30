@@ -88,7 +88,7 @@ export default function PrioPage() {
         .order('created_at', { ascending: false })
 
       if (!admin) {
-        query = query.not('status', 'is', null)
+        query = query.in('status', ['approved', 'rejected'])
       }
 
       const { data, error } = await query
