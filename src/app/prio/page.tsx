@@ -4,17 +4,28 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/supabase/client'
 
+/* ---------------- TYPES ---------------- */
+
+type Priority = 'Low' | 'Medium' | 'High' | 'HR'
+
 type LootRow = {
-  id: number
+  id: string // uuid
+
+  user_id: string
+  discord_name: string
+
   character_name: string
   class: string
   raid: string
   item_name: string
   slot: string
-  priority: string
+  priority: Priority
+
   created_at: string
 
   status?: 'approved' | 'rejected' | null
+  approved?: boolean | null
+
   reviewed_by?: string | null
 
   user_note?: string | null
@@ -22,7 +33,9 @@ type LootRow = {
   locked?: boolean | null
 }
 
-const PRIORITIES = ['Low', 'Medium', 'High', 'HR']
+const PRIORITIES: Priority[] = ['Low', 'Medium', 'High', 'HR']
+
+/* ---------------- COMPONENT ---------------- */
 
 export default function PrioPage() {
   const supabase = createClient()
@@ -52,7 +65,10 @@ export default function PrioPage() {
 
       if (userData.user) {
         name =
-          userData.user.user_metadata?.name || 'Admin'
+          userData.user.user_metadata?.preferred_username ||
+          userData.user.user_metadata?.full_name ||
+          userData.user.user_metadata?.name ||
+          'Admin'
 
         const { data: profile } = await supabase
           .from('profiles')
@@ -79,7 +95,7 @@ export default function PrioPage() {
 
       if (error) throw error
 
-      setRows(data || [])
+      setRows((data as LootRow[]) || [])
     } catch (err: any) {
       console.error(err)
       setError(err.message || 'Failed to load data')
@@ -96,7 +112,7 @@ export default function PrioPage() {
   /* HELPERS */
   /* -------------------------------- */
 
-  function getPriorityColor(priority: string) {
+  function getPriorityColor(priority: Priority) {
     if (priority === 'HR') return 'text-purple-400 font-bold'
     if (priority === 'High') return 'text-red-400 font-semibold'
     if (priority === 'Medium') return 'text-yellow-400'
@@ -109,7 +125,7 @@ export default function PrioPage() {
   /* -------------------------------- */
 
   async function updateRow(
-    id: number,
+    id: string,
     updates: Partial<LootRow>
   ) {
     const { error } = await supabase
@@ -126,7 +142,7 @@ export default function PrioPage() {
   }
 
   async function updateStatus(
-    id: number,
+    id: string,
     status: 'approved' | 'rejected'
   ) {
     const { error } = await supabase
@@ -145,7 +161,7 @@ export default function PrioPage() {
     await loadData()
   }
 
-  async function deleteRequest(id: number) {
+  async function deleteRequest(id: string) {
     const { error } = await supabase
       .from('loot_requests')
       .delete()
@@ -165,7 +181,7 @@ export default function PrioPage() {
     })
   }
 
-  async function updatePriority(id: number, value: string) {
+  async function updatePriority(id: string, value: Priority) {
     await updateRow(id, {
       priority: value,
     })
@@ -249,7 +265,10 @@ export default function PrioPage() {
                 <select
                   value={row.priority}
                   onChange={e =>
-                    updatePriority(row.id, e.target.value)
+                    updatePriority(
+                      row.id,
+                      e.target.value as Priority
+                    )
                   }
                   className="bg-gray-700 px-2 py-1 rounded text-sm"
                 >
