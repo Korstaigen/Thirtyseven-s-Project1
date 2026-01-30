@@ -51,6 +51,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
             {children}
 
+            {/* Footer Credit */}
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500 opacity-70 select-none pointer-events-none">
+              Built by Thirtyseven
+            </div>
+
             <Analytics />
             <ReactQueryDevtools initialIsOpen={false} />
 
