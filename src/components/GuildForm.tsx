@@ -281,12 +281,6 @@ export default function GuildForm() {
 
         if (!name || !item.slot) continue
 
-        if (hardReserves.includes(name.toLowerCase())) {
-          alert(`"${name}" is Hard Reserved`)
-          setLoading(false)
-          return
-        }
-
         if (!isAdmin && item.priority === 'HR') {
           alert('Only admins may use HR')
           setLoading(false)
