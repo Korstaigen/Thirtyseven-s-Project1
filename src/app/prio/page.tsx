@@ -24,32 +24,11 @@ type LootRow = {
 
 const PRIORITIES = ['Low', 'Medium', 'High', 'HR']
 
-const SLOTS = [
-  'All',
-  'Head',
-  'Neck',
-  'Shoulders',
-  'Back',
-  'Chest',
-  'Bracers',
-  'Gloves',
-  'Belt',
-  'Legs',
-  'Boots',
-  'Ring',
-  'Trinket',
-  'Two-Handed Weapon',
-  'Main Hand',
-  'Off Hand',
-  'Ranged',
-]
-
 export default function PrioPage() {
   const supabase = createClient()
   const router = useRouter()
 
   const [rows, setRows] = useState<LootRow[]>([])
-  const [filteredRows, setFilteredRows] = useState<LootRow[]>([])
 
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminName, setAdminName] = useState('')
@@ -63,35 +42,47 @@ export default function PrioPage() {
 
   async function loadData() {
     setLoading(true)
+    setError(null)
 
-    const { data: userData } = await supabase.auth.getUser()
+    try {
+      const { data: userData } = await supabase.auth.getUser()
 
-    if (userData.user) {
-      const raw =
-        userData.user.user_metadata?.name || 'Admin'
+      let admin = false
+      let name = ''
 
-      setAdminName(raw.split('#')[0])
+      if (userData.user) {
+        name =
+          userData.user.user_metadata?.name || 'Admin'
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userData.user.id)
-        .single()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', userData.user.id)
+          .single()
 
-      setIsAdmin(Boolean(profile?.is_admin))
-    }
+        admin = Boolean(profile?.is_admin)
 
-    const { data, error } = await supabase
-      .from('loot_requests')
-      .select('*')
-      .order('created_at', { ascending: false })
+        setIsAdmin(admin)
+        setAdminName(name.split('#')[0])
+      }
 
-    if (error) {
-      console.error(error)
-      setError(error.message)
-    } else {
+      let query = supabase
+        .from('loot_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (!admin) {
+        query = query.not('status', 'is', null)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+
       setRows(data || [])
-      setFilteredRows(data || [])
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Failed to load data')
     }
 
     setLoading(false)
@@ -100,16 +91,6 @@ export default function PrioPage() {
   useEffect(() => {
     loadData()
   }, [])
-
-  /* -------------------------------- */
-  /* FILTERS */
-  /* -------------------------------- */
-
-  useEffect(() => {
-    let result = [...rows]
-
-    setFilteredRows(result)
-  }, [rows])
 
   /* -------------------------------- */
   /* HELPERS */
@@ -184,6 +165,12 @@ export default function PrioPage() {
     })
   }
 
+  async function updatePriority(id: number, value: string) {
+    await updateRow(id, {
+      priority: value,
+    })
+  }
+
   /* -------------------------------- */
   /* UI */
   /* -------------------------------- */
@@ -227,7 +214,7 @@ export default function PrioPage() {
       {/* Results */}
       <div className="space-y-4">
 
-        {filteredRows.map(row => (
+        {rows.map(row => (
 
           <div
             key={row.id}
@@ -254,11 +241,30 @@ export default function PrioPage() {
             </div>
 
             {/* Priority */}
-            <div className="mt-1 text-sm">
-              Priority:{' '}
-              <span className={getPriorityColor(row.priority)}>
-                {row.priority}
-              </span>
+            <div className="mt-1 text-sm flex items-center gap-2">
+
+              <span>Priority:</span>
+
+              {isAdmin && !row.locked ? (
+                <select
+                  value={row.priority}
+                  onChange={e =>
+                    updatePriority(row.id, e.target.value)
+                  }
+                  className="bg-gray-700 px-2 py-1 rounded text-sm"
+                >
+                  {PRIORITIES.map(p => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className={getPriorityColor(row.priority)}>
+                  {row.priority}
+                </span>
+              )}
+
             </div>
 
             {/* STATUS */}
