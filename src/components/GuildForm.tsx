@@ -310,7 +310,7 @@ export default function GuildForm() {
 
           priority: normalizedPriority,
 
-          status: null,
+          status: 'pending',
           approved: false,
 
           user_note: item.note || null,
