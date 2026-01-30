@@ -23,7 +23,7 @@ type LootRow = {
 
   created_at: string
 
-  status?: 'approved' | 'rejected' | null
+  status?: 'approved' | 'rejected' | 'pending' | null
   approved?: boolean | null
 
   reviewed_by?: string | null
@@ -87,6 +87,7 @@ export default function PrioPage() {
         .select('*')
         .order('created_at', { ascending: false })
 
+      /* ✅ FIX: Non-admins only see approved/rejected */
       if (!admin) {
         query = query.in('status', ['approved', 'rejected'])
       }
