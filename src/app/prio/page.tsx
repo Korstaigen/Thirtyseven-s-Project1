@@ -264,62 +264,39 @@ export default function PrioPage() {
 
       {/* Filters */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-
-        <select
-          value={filterRaid}
-          onChange={e => setFilterRaid(e.target.value)}
-          className="bg-gray-800 px-2 py-1 rounded"
-        >
+        {/* (unchanged filters) */}
+        <select value={filterRaid} onChange={e => setFilterRaid(e.target.value)} className="bg-gray-800 px-2 py-1 rounded">
           <option>All</option>
           {[...new Set(rows.map(r => r.raid))].map(r => (
             <option key={r}>{r}</option>
           ))}
         </select>
 
-        <select
-          value={filterClass}
-          onChange={e => setFilterClass(e.target.value)}
-          className="bg-gray-800 px-2 py-1 rounded"
-        >
+        <select value={filterClass} onChange={e => setFilterClass(e.target.value)} className="bg-gray-800 px-2 py-1 rounded">
           <option>All</option>
           {[...new Set(rows.map(r => r.class))].map(c => (
             <option key={c}>{c}</option>
           ))}
         </select>
 
-        <select
-          value={filterSlot}
-          onChange={e => setFilterSlot(e.target.value)}
-          className="bg-gray-800 px-2 py-1 rounded"
-        >
+        <select value={filterSlot} onChange={e => setFilterSlot(e.target.value)} className="bg-gray-800 px-2 py-1 rounded">
           <option>All</option>
           {[...new Set(rows.map(r => r.slot))].map(s => (
             <option key={s}>{s}</option>
           ))}
         </select>
 
-        <select
-          value={filterPriority}
-          onChange={e => setFilterPriority(e.target.value)}
-          className="bg-gray-800 px-2 py-1 rounded"
-        >
+        <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="bg-gray-800 px-2 py-1 rounded">
           <option>All</option>
           {PRIORITIES.map(p => (
             <option key={p}>{p}</option>
           ))}
         </select>
 
-        <select
-          value={filterTime}
-          onChange={e =>
-            setFilterTime(e.target.value as 'new' | 'old')
-          }
-          className="bg-gray-800 px-2 py-1 rounded"
-        >
+        <select value={filterTime} onChange={e => setFilterTime(e.target.value as 'new' | 'old')} className="bg-gray-800 px-2 py-1 rounded">
           <option value="new">Newest</option>
           <option value="old">Oldest</option>
         </select>
-
       </div>
 
       {/* Results */}
@@ -333,9 +310,6 @@ export default function PrioPage() {
               row.locked ? 'opacity-70' : ''
             }`}
           >
-
-            {/* SAME UI AS BEFORE */}
-            {/* (unchanged) */}
 
             <div className="font-semibold">
               {row.character_name}
@@ -360,10 +334,7 @@ export default function PrioPage() {
                 <select
                   value={row.priority}
                   onChange={e =>
-                    updatePriority(
-                      row.id,
-                      e.target.value as Priority
-                    )
+                    updatePriority(row.id, e.target.value as Priority)
                   }
                   className="bg-gray-700 px-2 py-1 rounded text-sm"
                 >
@@ -379,33 +350,68 @@ export default function PrioPage() {
 
             </div>
 
+            {/* STATUS */}
             {row.status && (
               <div className="text-xs text-gray-400 mt-2">
-                {row.status === 'approved' && (
-                  <>Approved by {row.reviewed_by}</>
-                )}
-                {row.status === 'rejected' && (
-                  <>Rejected by {row.reviewed_by}</>
-                )}
+                {row.status === 'approved' && <>Approved by {row.reviewed_by}</>}
+                {row.status === 'rejected' && <>Rejected by {row.reviewed_by}</>}
               </div>
             )}
 
+            {/* ✅ NOTES RESTORED */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+
+              {/* User Note */}
+              <div>
+                <div className="text-xs text-gray-400 mb-1">
+                  User Comment
+                </div>
+
+                <div className="bg-gray-700 px-2 py-1 rounded text-sm min-h-[40px]">
+                  {row.user_note || '—'}
+                </div>
+              </div>
+
+              {/* Admin Note */}
+              <div>
+                <div className="text-xs text-gray-400 mb-1">
+                  Admin Note
+                </div>
+
+                {!isAdmin || row.locked ? (
+                  <div className="bg-gray-700 px-2 py-1 rounded text-sm min-h-[40px]">
+                    {row.admin_note || '—'}
+                  </div>
+                ) : (
+                  <textarea
+                    defaultValue={row.admin_note || ''}
+                    onBlur={e =>
+                      updateRow(row.id, {
+                        admin_note: e.target.value,
+                      })
+                    }
+                    className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
+                    rows={2}
+                  />
+                )}
+
+              </div>
+
+            </div>
+
+            {/* ADMIN CONTROLS */}
             {isAdmin && (
               <div className="flex gap-2 mt-4 flex-wrap">
 
                 <button
-                  onClick={() =>
-                    updateStatus(row.id, 'approved')
-                  }
+                  onClick={() => updateStatus(row.id, 'approved')}
                   className="bg-green-600 px-2 py-1 rounded text-xs"
                 >
                   Approve
                 </button>
 
                 <button
-                  onClick={() =>
-                    updateStatus(row.id, 'rejected')
-                  }
+                  onClick={() => updateStatus(row.id, 'rejected')}
                   className="bg-yellow-600 px-2 py-1 rounded text-xs"
                 >
                   Reject
