@@ -44,6 +44,7 @@ export default function MyPrioritiesPage() {
   const router = useRouter()
 
   const [rows, setRows] = useState<LootRow[]>([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -160,15 +161,18 @@ export default function MyPrioritiesPage() {
   }
 
   /* -------------------------------- */
-  /* USER ACTIONS */
+  /* LOCAL STATE SYNC */
   /* -------------------------------- */
 
-  // Local state update helper
   function updateLocalRow(id: string, updates: Partial<LootRow>) {
     setRows(prev =>
       prev.map(r => (r.id === id ? { ...r, ...updates } : r))
     )
   }
+
+  /* -------------------------------- */
+  /* USER ACTIONS */
+  /* -------------------------------- */
 
   async function resubmitRow(row: LootRow) {
     const { error } = await supabase
@@ -183,8 +187,8 @@ export default function MyPrioritiesPage() {
     if (!error) await loadData()
   }
 
-  async function updateUserNote(id: string, note: string) {
-    // Update UI immediately
+  // Save immediately (no blur required)
+  async function saveUserNote(id: string, note: string) {
     updateLocalRow(id, { user_note: note })
 
     await supabase
@@ -193,8 +197,7 @@ export default function MyPrioritiesPage() {
       .eq('id', id)
   }
 
-  async function updatePriority(id: string, priority: Priority) {
-    // Update UI immediately
+  async function savePriority(id: string, priority: Priority) {
     updateLocalRow(id, { priority })
 
     await supabase
@@ -333,7 +336,7 @@ export default function MyPrioritiesPage() {
                         <select
                           value={row.priority}
                           onChange={e =>
-                            updatePriority(
+                            savePriority(
                               row.id,
                               e.target.value as Priority
                             )
@@ -364,12 +367,7 @@ export default function MyPrioritiesPage() {
                           <textarea
                             value={row.user_note || ''}
                             onChange={e =>
-                              updateLocalRow(row.id, {
-                                user_note: e.target.value,
-                              })
-                            }
-                            onBlur={e =>
-                              updateUserNote(row.id, e.target.value)
+                              saveUserNote(row.id, e.target.value)
                             }
                             rows={2}
                             className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
