@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { createClient } from '@/supabase/client'
 
 export default function ClientLayout({
   children,
@@ -10,10 +8,6 @@ export default function ClientLayout({
   children: React.ReactNode
 }) {
   const [showModal, setShowModal] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  const supabase = createClient()
 
   useEffect(() => {
     const accepted = localStorage.getItem('loot_rules_accepted')
@@ -21,25 +15,7 @@ export default function ClientLayout({
     if (!accepted) {
       setShowModal(true)
     }
-
-    loadUser()
   }, [])
-
-  async function loadUser() {
-    const { data } = await supabase.auth.getUser()
-
-    if (data.user) {
-      setUser(data.user)
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', data.user.id)
-        .single()
-
-      setIsAdmin(Boolean(profile?.is_admin))
-    }
-  }
 
   function closeModal() {
     localStorage.setItem('loot_rules_accepted', 'true')
@@ -48,74 +24,6 @@ export default function ClientLayout({
 
   return (
     <>
-      {/* Top Right User Panel */}
-      <div className="fixed top-3 right-3 z-40 bg-gray-900 border border-gray-700 rounded-lg shadow-lg p-3 text-sm text-white min-w-[180px]">
-
-        {user ? (
-          <>
-            <div className="font-semibold mb-2 text-center">
-              {user.user_metadata?.preferred_username ||
-                user.user_metadata?.full_name ||
-                user.email}
-            </div>
-
-            <div className="flex flex-col gap-2">
-
-              <Link
-                href="/"
-                className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-center"
-              >
-                Loot System
-              </Link>
-
-              <Link
-                href="/prio"
-                className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-center"
-              >
-                Raid Priorities
-              </Link>
-
-              {/* NEW: My Priorities Button */}
-              <Link
-                href="/myprio"
-                className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-center font-semibold"
-              >
-                My Priorities
-              </Link>
-
-              {/* Become Admin (Moved Down) */}
-              {!isAdmin && (
-                <Link
-                  href="/become-admin"
-                  className="bg-yellow-600 hover:bg-yellow-500 px-3 py-1 rounded text-center"
-                >
-                  Become Admin
-                </Link>
-              )}
-
-              <button
-                onClick={async () => {
-                  await supabase.auth.signOut()
-                  location.reload()
-                }}
-                className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded"
-              >
-                Logout
-              </button>
-
-            </div>
-          </>
-        ) : (
-          <Link
-            href="/login"
-            className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-center block"
-          >
-            Login
-          </Link>
-        )}
-
-      </div>
-
       {children}
 
       {/* Loot System Modal */}
