@@ -44,6 +44,7 @@ export default function MyPrioritiesPage() {
   const router = useRouter()
 
   const [rows, setRows] = useState<LootRow[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -67,6 +68,15 @@ export default function MyPrioritiesPage() {
         router.push('/login')
         return
       }
+
+      // Check admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', auth.user.id)
+        .single()
+
+      setIsAdmin(!!profile?.is_admin)
 
       const { data, error } = await supabase
         .from('loot_requests')
@@ -152,12 +162,9 @@ export default function MyPrioritiesPage() {
     }
   }
 
+  // Users + admins can edit unless locked
   function canEdit(row: LootRow) {
-    if (row.locked) return false
-
-    if (row.status === 'approved' || row.status === 'rejected') return true
-
-    return false
+    return !row.locked
   }
 
   /* -------------------------------- */
@@ -174,6 +181,7 @@ export default function MyPrioritiesPage() {
   /* USER ACTIONS */
   /* -------------------------------- */
 
+  // Resubmit (also saves priority for users)
   async function resubmitRow(row: LootRow) {
     const { error } = await supabase
       .from('loot_requests')
@@ -181,29 +189,38 @@ export default function MyPrioritiesPage() {
         status: 'pending',
         reviewed_by: null,
         locked: false,
+        priority: row.priority, // ensure pending priority is saved
       })
       .eq('id', row.id)
 
     if (!error) await loadData()
   }
 
-  // Save immediately (no blur required)
+  // Users + admins: comment saves instantly
   async function saveUserNote(id: string, note: string) {
     updateLocalRow(id, { user_note: note })
 
-    await supabase
+    const { error } = await supabase
       .from('loot_requests')
       .update({ user_note: note })
       .eq('id', id)
+
+    if (error) console.error(error)
   }
 
+  // Admin: saves immediately
+  // User: only local change (requires resubmit)
   async function savePriority(id: string, priority: Priority) {
     updateLocalRow(id, { priority })
 
-    await supabase
+    if (!isAdmin) return
+
+    const { error } = await supabase
       .from('loot_requests')
       .update({ priority })
       .eq('id', id)
+
+    if (error) console.error(error)
   }
 
   /* -------------------------------- */
@@ -352,6 +369,12 @@ export default function MyPrioritiesPage() {
                           {row.priority}
                         </span>
                       )}
+
+                      {!isAdmin && canEdit(row) && (
+                        <span className="text-xs text-yellow-400">
+                          (Requires resubmit)
+                        </span>
+                      )}
                     </div>
 
                     {/* NOTES */}
@@ -393,7 +416,7 @@ export default function MyPrioritiesPage() {
                     </div>
 
                     {/* RESUBMIT */}
-                    {canEdit(row) && (
+                    {!isAdmin && canEdit(row) && (
                       <div className="mt-3 flex justify-end">
                         <button
                           onClick={() => resubmitRow(row)}
