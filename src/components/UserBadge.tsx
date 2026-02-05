@@ -116,7 +116,16 @@ export default function UserBadge() {
           </button>
         </Link>
 
-        {/* Become Admin */}
+        {/* NEW: My Priorities Button */}
+        <Link href="/myprio">
+          <button
+            className="w-full bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm text-left font-semibold"
+          >
+            My Priorities
+          </button>
+        </Link>
+
+        {/* Become Admin (Moved Down) */}
         {!isAdmin && (
           <button
             onClick={becomeAdmin}
