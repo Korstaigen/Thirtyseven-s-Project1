@@ -44,8 +44,6 @@ export default function MyPrioritiesPage() {
   const router = useRouter()
 
   const [rows, setRows] = useState<LootRow[]>([])
-  const [userId, setUserId] = useState<string | null>(null)
-
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -68,8 +66,6 @@ export default function MyPrioritiesPage() {
         router.push('/login')
         return
       }
-
-      setUserId(auth.user.id)
 
       const { data, error } = await supabase
         .from('loot_requests')
@@ -167,6 +163,13 @@ export default function MyPrioritiesPage() {
   /* USER ACTIONS */
   /* -------------------------------- */
 
+  // Local state update helper
+  function updateLocalRow(id: string, updates: Partial<LootRow>) {
+    setRows(prev =>
+      prev.map(r => (r.id === id ? { ...r, ...updates } : r))
+    )
+  }
+
   async function resubmitRow(row: LootRow) {
     const { error } = await supabase
       .from('loot_requests')
@@ -181,21 +184,23 @@ export default function MyPrioritiesPage() {
   }
 
   async function updateUserNote(id: string, note: string) {
-    const { error } = await supabase
+    // Update UI immediately
+    updateLocalRow(id, { user_note: note })
+
+    await supabase
       .from('loot_requests')
       .update({ user_note: note })
       .eq('id', id)
-
-    if (!error) await loadData()
   }
 
   async function updatePriority(id: string, priority: Priority) {
-    const { error } = await supabase
+    // Update UI immediately
+    updateLocalRow(id, { priority })
+
+    await supabase
       .from('loot_requests')
       .update({ priority })
       .eq('id', id)
-
-    if (!error) await loadData()
   }
 
   /* -------------------------------- */
@@ -357,7 +362,12 @@ export default function MyPrioritiesPage() {
 
                         {canEdit(row) ? (
                           <textarea
-                            defaultValue={row.user_note || ''}
+                            value={row.user_note || ''}
+                            onChange={e =>
+                              updateLocalRow(row.id, {
+                                user_note: e.target.value,
+                              })
+                            }
                             onBlur={e =>
                               updateUserNote(row.id, e.target.value)
                             }
