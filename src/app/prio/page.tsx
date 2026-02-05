@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/supabase/client'
 
@@ -33,6 +33,18 @@ type LootRow = {
   locked?: boolean | null
 }
 
+/** Grouped request */
+type LootGroup = {
+  key: string
+  user_id: string
+  discord_name: string
+  character_name: string
+  class: string
+  raid: string
+  created_at: string
+  rows: LootRow[]
+}
+
 const PRIORITIES: Priority[] = ['Low', 'Medium', 'High', 'HR']
 
 /* ---------------- COMPONENT ---------------- */
@@ -42,7 +54,6 @@ export default function PrioPage() {
   const router = useRouter()
 
   const [rows, setRows] = useState<LootRow[]>([])
-  const [filteredRows, setFilteredRows] = useState<LootRow[]>([])
 
   /* Filters */
   const [filterRaid, setFilterRaid] = useState('All')
@@ -105,7 +116,6 @@ export default function PrioPage() {
       if (error) throw error
 
       setRows((data as LootRow[]) || [])
-      setFilteredRows((data as LootRow[]) || [])
     } catch (err: any) {
       console.error(err)
       setError(err.message || 'Failed to load data')
@@ -119,10 +129,10 @@ export default function PrioPage() {
   }, [])
 
   /* -------------------------------- */
-  /* FILTER LOGIC */
+  /* FILTER + GROUP LOGIC */
   /* -------------------------------- */
 
-  useEffect(() => {
+  const groupedData = useMemo<LootGroup[]>(() => {
     let result = [...rows]
 
     if (filterRaid !== 'All') {
@@ -141,22 +151,44 @@ export default function PrioPage() {
       result = result.filter(r => r.priority === filterPriority)
     }
 
-    result.sort((a, b) => {
+    /* Group by user + raid + timestamp bucket */
+    const map = new Map<string, LootGroup>()
+
+    for (const row of result) {
+      // Grouping key: user + raid + minute bucket
+      // Assumes multi-item requests are created close in time
+      const bucket = new Date(row.created_at)
+      bucket.setSeconds(0, 0)
+
+      const key = `${row.user_id}-${row.raid}-${bucket.toISOString()}`
+
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          user_id: row.user_id,
+          discord_name: row.discord_name,
+          character_name: row.character_name,
+          class: row.class,
+          raid: row.raid,
+          created_at: row.created_at,
+          rows: [row],
+        })
+      } else {
+        map.get(key)!.rows.push(row)
+      }
+    }
+
+    let groups = Array.from(map.values())
+
+    groups.sort((a, b) => {
       const da = new Date(a.created_at).getTime()
       const db = new Date(b.created_at).getTime()
 
       return filterTime === 'new' ? db - da : da - db
     })
 
-    setFilteredRows(result)
-  }, [
-    rows,
-    filterRaid,
-    filterClass,
-    filterSlot,
-    filterPriority,
-    filterTime,
-  ])
+    return groups
+  }, [rows, filterRaid, filterClass, filterSlot, filterPriority, filterTime])
 
   /* -------------------------------- */
   /* HELPERS */
@@ -170,14 +202,15 @@ export default function PrioPage() {
     return 'text-gray-300'
   }
 
+  function isGroupLocked(group: LootGroup) {
+    return group.rows.every(r => r.locked)
+  }
+
   /* -------------------------------- */
   /* ADMIN ACTIONS */
   /* -------------------------------- */
 
-  async function updateRow(
-    id: string,
-    updates: Partial<LootRow>
-  ) {
+  async function updateRow(id: string, updates: Partial<LootRow>) {
     const { error } = await supabase
       .from('loot_requests')
       .update(updates)
@@ -186,10 +219,7 @@ export default function PrioPage() {
     if (!error) await loadData()
   }
 
-  async function updateStatus(
-    id: string,
-    status: 'approved' | 'rejected'
-  ) {
+  async function updateStatus(id: string, status: 'approved' | 'rejected') {
     const { error } = await supabase
       .from('loot_requests')
       .update({
@@ -201,6 +231,35 @@ export default function PrioPage() {
     if (!error) await loadData()
   }
 
+  async function updateGroupStatus(
+    group: LootGroup,
+    status: 'approved' | 'rejected'
+  ) {
+    const ids = group.rows.map(r => r.id)
+
+    const { error } = await supabase
+      .from('loot_requests')
+      .update({
+        status,
+        reviewed_by: adminName,
+      })
+      .in('id', ids)
+
+    if (!error) await loadData()
+  }
+
+  async function toggleLockGroup(group: LootGroup) {
+    const locked = isGroupLocked(group)
+    const ids = group.rows.map(r => r.id)
+
+    const { error } = await supabase
+      .from('loot_requests')
+      .update({ locked: !locked })
+      .in('id', ids)
+
+    if (!error) await loadData()
+  }
+
   async function deleteRequest(id: string) {
     const { error } = await supabase
       .from('loot_requests')
@@ -208,12 +267,6 @@ export default function PrioPage() {
       .eq('id', id)
 
     if (!error) await loadData()
-  }
-
-  async function toggleLock(row: LootRow) {
-    await updateRow(row.id, {
-      locked: !Boolean(row.locked),
-    })
   }
 
   async function updatePriority(id: string, value: Priority) {
@@ -264,7 +317,7 @@ export default function PrioPage() {
 
       {/* Filters */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        {/* (unchanged filters) */}
+
         <select value={filterRaid} onChange={e => setFilterRaid(e.target.value)} className="bg-gray-800 px-2 py-1 rounded">
           <option>All</option>
           {[...new Set(rows.map(r => r.raid))].map(r => (
@@ -300,139 +353,204 @@ export default function PrioPage() {
       </div>
 
       {/* Results */}
-      <div className="space-y-4">
+      <div className="space-y-6">
 
-        {filteredRows.map(row => (
+        {groupedData.map(group => (
 
           <div
-            key={row.id}
-            className={`bg-gray-800 p-4 rounded ${
-              row.locked ? 'opacity-70' : ''
+            key={group.key}
+            className={`bg-gray-800 p-4 rounded border border-gray-700 ${
+              isGroupLocked(group) ? 'opacity-70' : ''
             }`}
           >
 
-            <div className="font-semibold">
-              {row.character_name}
-            </div>
+            {/* GROUP HEADER */}
+            <div className="flex justify-between items-start mb-4">
 
-            <div className="text-sm text-gray-400">
-              {row.class} • {row.raid} • {row.slot}
-            </div>
+              <div>
+                <div className="font-semibold text-lg">
+                  {group.character_name}
+                </div>
 
-            <div className="mt-2 text-sm">
-              Item:{' '}
-              <span className="text-blue-400">
-                {row.item_name}
-              </span>
-            </div>
+                <div className="text-sm text-gray-400">
+                  {group.class} • {group.raid}
+                </div>
 
-            <div className="mt-1 text-sm flex items-center gap-2">
+                <div className="text-xs text-gray-500 mt-1">
+                  {group.rows.length} item(s)
+                </div>
+              </div>
 
-              <span>Priority:</span>
+              {/* GROUP ADMIN CONTROLS */}
+              {isAdmin && (
+                <div className="flex gap-2 flex-wrap">
 
-              {isAdmin && !row.locked ? (
-                <select
-                  value={row.priority}
-                  onChange={e =>
-                    updatePriority(row.id, e.target.value as Priority)
-                  }
-                  className="bg-gray-700 px-2 py-1 rounded text-sm"
-                >
-                  {PRIORITIES.map(p => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
-              ) : (
-                <span className={getPriorityColor(row.priority)}>
-                  {row.priority}
-                </span>
+                  <button
+                    onClick={() => updateGroupStatus(group, 'approved')}
+                    className="bg-green-600 px-2 py-1 rounded text-xs"
+                  >
+                    Approve All
+                  </button>
+
+                  <button
+                    onClick={() => updateGroupStatus(group, 'rejected')}
+                    className="bg-yellow-600 px-2 py-1 rounded text-xs"
+                  >
+                    Reject All
+                  </button>
+
+                  <button
+                    onClick={() => toggleLockGroup(group)}
+                    className="bg-purple-600 px-2 py-1 rounded text-xs"
+                  >
+                    {isGroupLocked(group) ? 'Unlock All' : 'Lock All'}
+                  </button>
+
+                </div>
               )}
 
             </div>
 
-            {/* STATUS */}
-            {row.status && (
-              <div className="text-xs text-gray-400 mt-2">
-                {row.status === 'approved' && <>Approved by {row.reviewed_by}</>}
-                {row.status === 'rejected' && <>Rejected by {row.reviewed_by}</>}
-              </div>
-            )}
+            {/* ITEMS */}
+            <div className="space-y-4">
 
-            {/* ✅ NOTES RESTORED */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+              {group.rows.map(row => (
 
-              {/* User Note */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1">
-                  User Comment
-                </div>
+                <div
+                  key={row.id}
+                  className="bg-gray-900 p-3 rounded"
+                >
 
-                <div className="bg-gray-700 px-2 py-1 rounded text-sm min-h-[40px]">
-                  {row.user_note || '—'}
-                </div>
-              </div>
+                  <div className="flex justify-between items-start">
 
-              {/* Admin Note */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1">
-                  Admin Note
-                </div>
+                    <div>
+                      <div className="text-sm">
+                        Item:{' '}
+                        <span className="text-blue-400">
+                          {row.item_name}
+                        </span>
+                      </div>
 
-                {!isAdmin || row.locked ? (
-                  <div className="bg-gray-700 px-2 py-1 rounded text-sm min-h-[40px]">
-                    {row.admin_note || '—'}
+                      <div className="text-xs text-gray-400">
+                        Slot: {row.slot}
+                      </div>
+                    </div>
+
+                    {/* STATUS */}
+                    {row.status && (
+                      <div className="text-xs text-gray-400">
+                        {row.status === 'approved' && <>Approved by {row.reviewed_by}</>}
+                        {row.status === 'rejected' && <>Rejected by {row.reviewed_by}</>}
+                      </div>
+                    )}
+
                   </div>
-                ) : (
-                  <textarea
-                    defaultValue={row.admin_note || ''}
-                    onBlur={e =>
-                      updateRow(row.id, {
-                        admin_note: e.target.value,
-                      })
-                    }
-                    className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
-                    rows={2}
-                  />
-                )}
 
-              </div>
+                  {/* PRIORITY */}
+                  <div className="mt-2 text-sm flex items-center gap-2">
+
+                    <span>Priority:</span>
+
+                    {isAdmin && !row.locked ? (
+                      <select
+                        value={row.priority}
+                        onChange={e =>
+                          updatePriority(row.id, e.target.value as Priority)
+                        }
+                        className="bg-gray-700 px-2 py-1 rounded text-sm"
+                      >
+                        {PRIORITIES.map(p => (
+                          <option key={p}>{p}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={getPriorityColor(row.priority)}>
+                        {row.priority}
+                      </span>
+                    )}
+
+                  </div>
+
+                  {/* NOTES */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+
+                    {/* User Note */}
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">
+                        User Comment
+                      </div>
+
+                      <div className="bg-gray-700 px-2 py-1 rounded text-sm min-h-[40px]">
+                        {row.user_note || '—'}
+                      </div>
+                    </div>
+
+                    {/* Admin Note */}
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">
+                        Admin Note
+                      </div>
+
+                      {!isAdmin || row.locked ? (
+                        <div className="bg-gray-700 px-2 py-1 rounded text-sm min-h-[40px]">
+                          {row.admin_note || '—'}
+                        </div>
+                      ) : (
+                        <textarea
+                          defaultValue={row.admin_note || ''}
+                          onBlur={e =>
+                            updateRow(row.id, {
+                              admin_note: e.target.value,
+                            })
+                          }
+                          className="bg-gray-700 w-full px-2 py-1 rounded text-sm"
+                          rows={2}
+                        />
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  {/* ITEM ADMIN CONTROLS */}
+                  {isAdmin && (
+                    <div className="flex gap-2 mt-3 flex-wrap">
+
+                      <button
+                        onClick={() => updateStatus(row.id, 'approved')}
+                        className="bg-green-600 px-2 py-1 rounded text-xs"
+                      >
+                        Approve
+                      </button>
+
+                      <button
+                        onClick={() => updateStatus(row.id, 'rejected')}
+                        className="bg-yellow-600 px-2 py-1 rounded text-xs"
+                      >
+                        Reject
+                      </button>
+
+                      <button
+                        onClick={() => updateRow(row.id, { locked: !row.locked })}
+                        className="bg-purple-600 px-2 py-1 rounded text-xs"
+                      >
+                        {row.locked ? 'Unlock' : 'Lock'}
+                      </button>
+
+                      <button
+                        onClick={() => deleteRequest(row.id)}
+                        className="bg-red-600 px-2 py-1 rounded text-xs"
+                      >
+                        Delete
+                      </button>
+
+                    </div>
+                  )}
+
+                </div>
+              ))}
 
             </div>
-
-            {/* ADMIN CONTROLS */}
-            {isAdmin && (
-              <div className="flex gap-2 mt-4 flex-wrap">
-
-                <button
-                  onClick={() => updateStatus(row.id, 'approved')}
-                  className="bg-green-600 px-2 py-1 rounded text-xs"
-                >
-                  Approve
-                </button>
-
-                <button
-                  onClick={() => updateStatus(row.id, 'rejected')}
-                  className="bg-yellow-600 px-2 py-1 rounded text-xs"
-                >
-                  Reject
-                </button>
-
-                <button
-                  onClick={() => toggleLock(row)}
-                  className="bg-purple-600 px-2 py-1 rounded text-xs"
-                >
-                  {row.locked ? 'Unlock' : 'Lock'}
-                </button>
-
-                <button
-                  onClick={() => deleteRequest(row.id)}
-                  className="bg-red-600 px-2 py-1 rounded text-xs"
-                >
-                  Delete
-                </button>
-
-              </div>
-            )}
 
           </div>
         ))}
